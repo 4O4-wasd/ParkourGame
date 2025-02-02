@@ -1,0 +1,22 @@
+Binaries
+DerivedDataCache
+Intermediate
+Saved
+.vscode
+.vs
+*.VC.db
+*.opensdf
+*.opendb
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+.idea
+.vs
+.vscode
+
+#Starter Content
+Content/StarterContent/*
+Content/AnimStarterPack/*
+Content/CT_Components/*
