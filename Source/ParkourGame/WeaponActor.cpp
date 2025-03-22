@@ -61,10 +61,6 @@ void AWeaponActor::Tick(float DeltaSeconds)
                                                        GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
             SetActorRelativeRotation(CurrentRelativeRotation);
         }
-        // else
-        // {
-        // 	ResetFire();
-        // }
     }
 }
 

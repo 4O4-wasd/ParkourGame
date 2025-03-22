@@ -40,9 +40,6 @@ protected:
     FString FireMuzzleSocketName;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    TSubclassOf<class APickupMaster> PickUpClass;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
     FVector WeaponDefaultRelativeLocation;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
@@ -95,13 +92,10 @@ public:
     FORCEINLINE auto GetDamage() { return Damage; }
 
     FORCEINLINE auto GetRange() { return Range; }
-
-
+    
     FORCEINLINE auto GetWeaponName() { return WeaponName; }
 
     FORCEINLINE auto GetFireMuzzleSocketName() { return FireMuzzleSocketName; }
-
-    FORCEINLINE auto GetPickUpClass() { return PickUpClass; }
 
     FORCEINLINE auto GetWeaponDefaultRelativeLocation() { return WeaponDefaultRelativeLocation; }
 
