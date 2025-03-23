@@ -44,9 +44,20 @@ void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTic
                                                       FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	CustomMovementUpdate();
 	SpeedControl();
 	DiagonalMove();
-	VaultUpdate();
+	CameraTilt();
+	if (Velocity.Size2D() > 800)
+	{
+		JumpZVelocity = 700 + (FMath::Clamp(Velocity.Size2D(), 0, 3000) / 20);
+	}
+	else
+	{
+		JumpZVelocity = 700;
+	}
+	PRINT_TO_SCREEN(FString::Printf(TEXT("Jump Velocity: %f"), JumpZVelocity), 0.0f,
+	                FColor::Red);
 	PRINT_TO_SCREEN(FString::Printf(TEXT("Input X: %f, Y: %f"), MovementInput.X, MovementInput.Y), 0.0f,
 	                FColor::Orange);
 	PRINT_TO_SCREEN(FString::Printf(TEXT("Velocity X: %f, Y: %f, Z: %f"), Velocity.X, Velocity.Y, Velocity.Z), 0.0f,
@@ -59,6 +70,23 @@ void UBetterCharacterMovementComponent::BeginPlay()
 	Super::BeginPlay();
 
 	StandingCapsuleHalfHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+}
+
+void UBetterCharacterMovementComponent::CustomMovementUpdate()
+{
+	switch (CurrentCustomMovementMode)
+	{
+	case Sliding:
+		SlideUpdate();
+		break;
+	case Crouching:
+	case Walking:
+	case Sprinting:
+	default:
+		break;
+	}
+
+	VaultUpdate();
 }
 
 bool UBetterCharacterMovementComponent::CanStand() const
@@ -103,6 +131,11 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 		return false;
 	}
 
+	if (Velocity.Size() < 800)
+	{
+		return false;
+	}
+
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.AddIgnoredActor(CharacterOwner);
 
@@ -124,8 +157,8 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 	return Result;
 }
 
-bool UBetterCharacterMovementComponent::CanVaultToHit(UCapsuleComponent* Capsule, FHitResult Hit,
-                                                      FVector& EndingLocation)
+bool UBetterCharacterMovementComponent::CanVaultToHit(const UCapsuleComponent* Capsule, const FHitResult& Hit,
+                                                      FVector& EndingLocation) const
 {
 	const bool IsInRange = UKismetMathLibrary::InRange_FloatFloat(Hit.Location.Z - Hit.TraceEnd.Z, 50, 170);
 
@@ -152,7 +185,8 @@ bool UBetterCharacterMovementComponent::CanVaultToHit(UCapsuleComponent* Capsule
 	return true;
 }
 
-bool UBetterCharacterMovementComponent::CheckCapsuleCollison(FVector Center, float HalfHeight, float Radius)
+bool UBetterCharacterMovementComponent::CheckCapsuleCollison(const FVector& Center, const float HalfHeight,
+                                                             const float Radius) const
 {
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
@@ -193,18 +227,13 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 	case Vaulting:
 	case Walking:
 	case Sprinting:
-		EndSwing();
 		EndCrouch();
 		break;
 	case Crouching:
 		EndSlide();
 		BeginCrouch();
 		break;
-	case Swinging:
-		BeginSwing();
-		break;
 	case Sliding:
-		EndSwing();
 		BeginCrouch();
 		BeginSlide();
 		break;
@@ -242,6 +271,33 @@ void UBetterCharacterMovementComponent::ResolveMovement()
 	SetCustomMovementMode(ResolvedMovementMode);
 }
 
+void UBetterCharacterMovementComponent::CameraTilt() const
+{
+	const FRotator Rotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(),
+	                                                        FRotator(GetController()->GetControlRotation().Pitch,
+	                                                                 GetController()->GetControlRotation().Yaw,
+	                                                                 -1 * (CurrentCustomMovementMode == Sliding
+		                                                                       ? SlideCameraTilt
+		                                                                       : CurrentCustomMovementMode == Vaulting
+		                                                                       ? VaultCameraTilt
+		                                                                       : 0)),
+	                                                        GetWorld()->GetDeltaSeconds(),
+	                                                        10);
+	if (CurrentCustomMovementMode == Sliding || CurrentCustomMovementMode == Vaulting)
+	{
+		GetController()->SetControlRotation(Rotation);
+		return;
+	}
+
+
+	const FRotator BackToRotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(),
+	                                                              FRotator(GetController()->GetControlRotation().Pitch,
+	                                                                       GetController()->GetControlRotation().Yaw,
+	                                                                       0),
+	                                                              GetWorld()->GetDeltaSeconds(), 10);
+	GetController()->SetControlRotation(BackToRotation);
+}
+
 void UBetterCharacterMovementComponent::BeginCrouch()
 {
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(StandingCapsuleHalfHeight / 2);
@@ -271,9 +327,6 @@ FVector UBetterCharacterMovementComponent::CalculateFloorInfluence(FVector Floor
 void UBetterCharacterMovementComponent::BeginSlide()
 {
 	Velocity += FVector(0, 0, -90.f);
-	GetWorld()->GetTimerManager().SetTimer(SlideTimerHandler, this,
-	                                       &UBetterCharacterMovementComponent::SlideUpdate,
-	                                       GetWorld()->GetDeltaSeconds(), true);
 }
 
 void UBetterCharacterMovementComponent::EndSlide()
@@ -283,11 +336,6 @@ void UBetterCharacterMovementComponent::EndSlide()
 
 void UBetterCharacterMovementComponent::SlideUpdate()
 {
-	if (CurrentCustomMovementMode != Sliding)
-	{
-		return;
-	}
-
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.AddIgnoredActor(CharacterOwner);
 
@@ -326,18 +374,6 @@ void UBetterCharacterMovementComponent::SlideUpdate()
 	                                                               GetWorld()->GetDeltaSeconds(), 2.f);
 
 	CharacterOwner->GetMesh()->SetWorldRotation(NewMeshRotation);
-}
-
-void UBetterCharacterMovementComponent::BeginSwing()
-{
-}
-
-void UBetterCharacterMovementComponent::EndSwing()
-{
-}
-
-void UBetterCharacterMovementComponent::SwingUpdate()
-{
 }
 
 void UBetterCharacterMovementComponent::VaultUpdate()
@@ -416,7 +452,7 @@ void UBetterCharacterMovementComponent::CrouchReleased()
 }
 
 FMovementTypeSetting UBetterCharacterMovementComponent::GetCustomMovementSetting(
-	ECustomMovementMode CustomMovement) const
+	const ECustomMovementMode CustomMovement) const
 {
 	switch (CustomMovement)
 	{
@@ -427,10 +463,10 @@ FMovementTypeSetting UBetterCharacterMovementComponent::GetCustomMovementSetting
 		return MovementSetting.Sprint;
 	case Crouching:
 		return MovementSetting.Crouch;
-	case Swinging:
-		return MovementSetting.Swing;
 	case Sliding:
 		return MovementSetting.Slide;
+	case WallRunning:
+		return MovementSetting.WallRun;
 	default:
 		return MovementSetting.Walk;
 	}

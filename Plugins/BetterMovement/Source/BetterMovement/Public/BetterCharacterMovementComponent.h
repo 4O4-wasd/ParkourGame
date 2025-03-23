@@ -13,8 +13,8 @@ enum ECustomMovementMode
 	Sprinting UMETA(DisplayName = "Sprinting"),
 	Crouching UMETA(DisplayName = "Crouching"),
 	Sliding UMETA(DisplayName = "Sliding"),
-	Swinging UMETA(DisplayName = "Swinging"),
 	Vaulting UMETA(DisplayName = "Vaulting"),
+	WallRunning UMETA(DisplayName = "WallRunning"),
 };
 
 USTRUCT(BlueprintType)
@@ -50,7 +50,7 @@ struct FMovementSetting
 	FMovementTypeSetting Slide;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting Swing;
+	FMovementTypeSetting WallRun;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxSlideSpeed;
@@ -70,19 +70,23 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	virtual void CustomMovementUpdate();
+
 	bool CanStand() const;
 
 	bool CanSprint() const;
 
-	bool CanVaultToHit(UCapsuleComponent* Capsule, FHitResult Hit, FVector& EndingLocation);
+	bool CanVaultToHit(const UCapsuleComponent* Capsule, const FHitResult& Hit, FVector& EndingLocation) const;
 
-	bool CheckCapsuleCollison(FVector Center, float HalfHeight, float Radius);
+	bool CheckCapsuleCollison(const FVector& Center, float HalfHeight, float Radius) const;
 
 	void SetCustomMovementMode(ECustomMovementMode NewMovementMode);
 
 	void OnCustomMovementModeChanged(ECustomMovementMode PrevMovementMode);
 
 	void ResolveMovement();
+
+	void CameraTilt() const;
 
 	virtual void BeginCrouch();
 
@@ -95,12 +99,6 @@ protected:
 	virtual void EndSlide();
 
 	virtual void SlideUpdate();
-
-	virtual void BeginSwing();
-
-	virtual void EndSwing();
-
-	virtual void SwingUpdate();
 
 	virtual void VaultUpdate();
 
@@ -153,12 +151,18 @@ private:
 			700
 		},
 		{
-			1000,
-			2800,
-			2300
+			850,
+			2500,
+			2000
 		},
 		7000
 	};
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
+	float SlideCameraTilt = 7;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
+	float VaultCameraTilt = 10;
 
 	float StandingCapsuleHalfHeight;
 
@@ -166,8 +170,6 @@ private:
 
 	FVector JumpTargetLocation;
 	// FTimerHandle SwingTimerHandler;
-
-	FVector VaultEndingLocation;
 
 	FVector StartingVaultLocation;
 	FVector EndingVaultLocation;
