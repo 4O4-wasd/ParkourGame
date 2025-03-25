@@ -48,6 +48,22 @@ void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTic
 	SpeedControl();
 	DiagonalMove();
 	CameraTilt();
+
+	if (CurrentCustomMovementMode == WallRunning)
+	{
+		UpdateWallRun();
+	}
+	else if (CanWallRun())
+	{
+		// Check for a valid wall on either side.
+		FVector WallNormal;
+		bool bIsRightSide;
+		if (FindWall(WallNormal, bIsRightSide))
+		{
+			StartWallRun(WallNormal, bIsRightSide);
+		}
+	}
+
 	if (Velocity.Size2D() > 800)
 	{
 		JumpZVelocity = 700 + (FMath::Clamp(Velocity.Size2D(), 0, 3000) / 20);
@@ -56,8 +72,6 @@ void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTic
 	{
 		JumpZVelocity = 700;
 	}
-	PRINT_TO_SCREEN(FString::Printf(TEXT("Jump Velocity: %f"), JumpZVelocity), 0.0f,
-	                FColor::Red);
 	PRINT_TO_SCREEN(FString::Printf(TEXT("Input X: %f, Y: %f"), MovementInput.X, MovementInput.Y), 0.0f,
 	                FColor::Orange);
 	PRINT_TO_SCREEN(FString::Printf(TEXT("Velocity X: %f, Y: %f, Z: %f"), Velocity.X, Velocity.Y, Velocity.Z), 0.0f,
@@ -85,7 +99,6 @@ void UBetterCharacterMovementComponent::CustomMovementUpdate()
 	default:
 		break;
 	}
-
 	VaultUpdate();
 }
 
@@ -131,7 +144,7 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 		return false;
 	}
 
-	if (Velocity.Size() < 800)
+	if (Velocity.Size() < 700)
 	{
 		return false;
 	}
@@ -142,7 +155,6 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 	const auto Capsule = CharacterOwner->GetCapsuleComponent();
 
 	const FVector Location = CharacterOwner->GetActorLocation() + (CharacterOwner->GetActorForwardVector() * 100);
-
 	FHitResult Hit;
 	const bool DidHit = GetWorld()->LineTraceSingleByChannel(
 		Hit, Location + FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight()),
@@ -160,8 +172,10 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 bool UBetterCharacterMovementComponent::CanVaultToHit(const UCapsuleComponent* Capsule, const FHitResult& Hit,
                                                       FVector& EndingLocation) const
 {
-	const bool IsInRange = UKismetMathLibrary::InRange_FloatFloat(Hit.Location.Z - Hit.TraceEnd.Z, 50, 170);
-
+	const bool IsInRange = UKismetMathLibrary::InRange_FloatFloat(Hit.Location.Z - Hit.TraceEnd.Z, 50,
+	                                                              170);
+	PRINT_TO_SCREEN(FString::Printf(TEXT("ExitingWall: %i"), IsInRange), 0.0f,
+	                FColor::Red);
 	if (!IsInRange)
 	{
 		return false;
@@ -188,6 +202,12 @@ bool UBetterCharacterMovementComponent::CanVaultToHit(const UCapsuleComponent* C
 bool UBetterCharacterMovementComponent::CheckCapsuleCollison(const FVector& Center, const float HalfHeight,
                                                              const float Radius) const
 {
+	DrawDebugCapsule(GetWorld(), Center, HalfHeight, Radius, FQuat::Identity,
+	                 FColor::Green,
+	                 false,
+	                 0.f,
+	                 0,
+	                 2.0f);
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
@@ -224,6 +244,7 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 
 	switch (CurrentCustomMovementMode)
 	{
+	case WallRunning:
 	case Vaulting:
 	case Walking:
 	case Sprinting:
@@ -334,6 +355,21 @@ void UBetterCharacterMovementComponent::EndSlide()
 	GetWorld()->GetTimerManager().ClearTimer(SlideTimerHandler);
 }
 
+void UBetterCharacterMovementComponent::ResetWallTimer(const float ResetTime)
+{
+	FTimerHandle TimerHandle;
+
+	GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		FTimerDelegate::CreateLambda([&]
+		{
+			IsExitingWall = false;
+		}),
+		ResetTime,
+		false
+	);
+}
+
 void UBetterCharacterMovementComponent::SlideUpdate()
 {
 	FCollisionQueryParams CollisionParams;
@@ -394,6 +430,177 @@ void UBetterCharacterMovementComponent::VaultUpdate()
 		return;
 	}
 }
+
+void UBetterCharacterMovementComponent::StartWallRun(const FVector& WallNormal, bool bIsRightSide)
+{
+	SetCustomMovementMode(WallRunning);
+	CurrentWallNormal = WallNormal;
+	WallRunDuration = 0.f;
+
+	// Reduce gravity while wall running
+	GravityScale = WallRunGravityScale;
+
+	// Calculate the forward direction along the wall.
+	// Cross the wall normal with up vector to get the wall run direction.
+	FVector WallRunDirection = FVector::CrossProduct(WallNormal, FVector::UpVector);
+
+	// Adjust based on which side the wall is on: if the wall is on the left, flip the direction.
+	if (!bIsRightSide)
+	{
+		WallRunDirection = -WallRunDirection;
+	}
+
+	float WallPushForce = 500000.0f;
+	// Since CurrentWallNormal points out from the wall, we use -CurrentWallNormal to push toward it.
+	Velocity += -CurrentWallNormal * WallPushForce;
+
+	// Ensure the wall run direction aligns with the actor's forward vector.
+	// If it doesn't, flip it so the character moves where they're looking.
+	if (FVector::DotProduct(WallRunDirection, CharacterOwner->GetActorForwardVector()) < 0.f)
+	{
+		WallRunDirection = -WallRunDirection;
+	}
+
+	WallRunDirection.Normalize();
+
+	// Set the fixed wall run speed.
+	Velocity = WallRunDirection * WallRunSpeed;
+
+	UE_LOG(LogTemp, Log, TEXT("Wall Run Started"));
+}
+
+void UBetterCharacterMovementComponent::UpdateWallRun()
+{
+	WallRunDuration += GetWorld()->GetDeltaSeconds();
+
+	// Continuously update the wall run direction and enforce constant speed.
+	FVector Forward = CharacterOwner->GetActorForwardVector();
+	FVector WallRunDirection = FVector::CrossProduct(CurrentWallNormal, FVector::UpVector);
+
+	// If WallRunDirection is opposite to where the player is looking, flip it
+	if (FVector::DotProduct(WallRunDirection, Forward) < 0)
+	{
+		WallRunDirection = -WallRunDirection;
+	}
+	WallRunDirection.Normalize();
+	Velocity = WallRunDirection * WallRunSpeed;
+
+	if (!CanWallRun())
+	{
+		StopWallRun();
+	}
+
+	if (MovementInput.Y <= 0)
+	{
+		StopWallRun();
+	}
+
+	// Optionally, check if conditions to stop wall run are met (e.g., player input, no wall, etc.)
+	FVector DummyNormal;
+	bool bDummy;
+	if (!FindWall(DummyNormal, bDummy))
+	{
+		StopWallRun();
+	}
+}
+
+void UBetterCharacterMovementComponent::WallJump()
+{
+	// Only execute if we're currently wall running.
+	if (CurrentCustomMovementMode == WallRunning)
+	{
+		// Calculate the jump direction:
+		// Combining upward with CurrentWallNormal pushes the character away from the wall.
+		FVector JumpOffDirection = (FVector::UpVector * 1 + CurrentWallNormal * 1 + CharacterOwner->
+			GetActorForwardVector() * 1);
+
+		// Launch the character in that direction.
+		CharacterOwner->LaunchCharacter(
+			(FVector::UpVector * WallUpJumpStrength + CurrentWallNormal * WallJumpStrength +
+				CharacterOwner->
+				GetActorForwardVector() * WallJumpStrength), true, true);
+
+		// Exit wall run state.
+		ResolveMovement();
+		GravityScale = 2.0f; // Reset gravity if it was modified.
+
+		UE_LOG(LogTemp, Log, TEXT("Wall Jump executed: %s"), *JumpOffDirection.ToString());
+
+		// Disable wall running temporarily to avoid immediate re-trigger.
+		bCanWallRun = false;
+		FTimerHandle WallRunCooldownTimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(WallRunCooldownTimerHandle, [&]()
+		{
+			bCanWallRun = true;
+		}, WallRunCooldownTime, false);
+
+		UE_LOG(LogTemp, Log, TEXT("Wall Jump executed: %s"), *JumpOffDirection.ToString());
+	}
+}
+
+void UBetterCharacterMovementComponent::StopWallRun()
+{
+	GravityScale = 2.0f;
+	ResolveMovement();
+	PRINT_TO_SCREEN(FString::Printf(TEXT("Wall run stopped")), 100.0f,
+	                FColor::Orange);
+	UE_LOG(LogTemp, Log, TEXT("Wall Run Stopped"));
+}
+
+bool UBetterCharacterMovementComponent::CanWallRun() const
+{
+	FHitResult Hit;
+	DrawDebugLine(GetWorld(), CharacterOwner->GetActorLocation(),
+	              CharacterOwner->GetActorLocation() + FVector(
+		              0, 0, -MinWallRunJumpHeight), FColor::Emerald);
+	return bCanWallRun && !GetWorld()->LineTraceSingleByChannel(
+		Hit, CharacterOwner->GetActorLocation(),
+		CharacterOwner->GetActorLocation() + FVector(
+			0, 0, -MinWallRunJumpHeight),
+		ECC_Visibility);
+}
+
+bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& bIsRightSide)
+{
+	// Set the start location for the trace (character location)
+	FVector Start = CharacterOwner->GetActorLocation();
+	// Calculate right and left directions
+	FVector Right = CharacterOwner->GetActorRightVector();
+	FVector Left = -Right;
+	float TraceDistance = 100.f; // Adjust based on your character size and level design
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(CharacterOwner);
+
+	// Trace to the right
+	bool bHitRight = GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Right * TraceDistance,
+	                                                      ECC_Visibility, QueryParams);
+	// Optionally draw the debug line:
+	DrawDebugLine(GetWorld(), Start, Start + Right * TraceDistance, FColor::Blue, true, 0.1f);
+
+	if (bHitRight && FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
+	{
+		OutWallNormal = HitResult.Normal;
+		bIsRightSide = true;
+		return true;
+	}
+
+	// Trace to the left
+	bool bHitLeft = GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Left * TraceDistance, ECC_Visibility,
+	                                                     QueryParams);
+	DrawDebugLine(GetWorld(), Start, Start + Left * TraceDistance, FColor::Blue, true, 0.1f);
+
+	if (bHitLeft && FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
+	{
+		OutWallNormal = HitResult.Normal;
+		bIsRightSide = false;
+		return true;
+	}
+
+	return false;
+}
+
 
 void UBetterCharacterMovementComponent::DiagonalMove()
 {

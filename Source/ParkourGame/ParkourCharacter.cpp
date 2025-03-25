@@ -139,6 +139,11 @@ void AParkourCharacter::Tick(float DeltaTime)
 
 void AParkourCharacter::JumpVault()
 {
+	if (BetterCharacterMovement->GetCurrentCustomMovementMode() == WallRunning)
+	{
+		BetterCharacterMovement->WallJump();
+		return;
+	}
 	FVector _;
 	if (!BetterCharacterMovement->CanVault(_))
 	{

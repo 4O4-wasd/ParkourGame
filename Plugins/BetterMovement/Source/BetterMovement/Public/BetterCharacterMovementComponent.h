@@ -17,6 +17,14 @@ enum ECustomMovementMode
 	WallRunning UMETA(DisplayName = "WallRunning"),
 };
 
+UENUM(BlueprintType)
+enum ECustomMovementWallRunSide
+{
+	WallRunNone UMETA(DisplayName = "None"),
+	WallRunLeft UMETA(DisplayName = "Left"),
+	WallRunRight UMETA(DisplayName = "Right"),
+};
+
 USTRUCT(BlueprintType)
 struct FMovementTypeSetting
 {
@@ -98,9 +106,18 @@ protected:
 
 	virtual void EndSlide();
 
+	void ResetWallTimer(float ResetTime);
+
 	virtual void SlideUpdate();
 
 	virtual void VaultUpdate();
+
+	void StartWallRun(const FVector& WallNormal, bool bIsRightSide);
+	void UpdateWallRun();
+
+	// Helper functions to detect walls
+	bool CanWallRun() const;
+	bool FindWall(FVector& OutWallNormal, bool& bIsRightSide);
 
 	virtual void DiagonalMove();
 
@@ -122,10 +139,16 @@ public:
 	void CrouchReleased();
 
 	UFUNCTION(BlueprintCallable)
+	void StopWallRun();
+
+	UFUNCTION(BlueprintCallable)
 	void Vault();
 
 	UFUNCTION(BlueprintCallable)
 	bool CanVault(FVector& EndingLocation);
+
+	UFUNCTION(BlueprintCallable)
+	void WallJump();
 
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
@@ -151,7 +174,7 @@ private:
 			700
 		},
 		{
-			850,
+			0,
 			2500,
 			2000
 		},
@@ -174,16 +197,44 @@ private:
 	FVector StartingVaultLocation;
 	FVector EndingVaultLocation;
 
-	float VaultProgress;
-
 protected:
 	bool bIsSprintKeyDown = false;
 	bool bIsCrouchKeyDown = false;
 
 	FVector2D MovementInput;
+	bool IsExitingWall;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<ECustomMovementMode> CurrentCustomMovementMode;
+
+	// The wall normal of the current wall run surface
+	FVector CurrentWallNormal;
+
+	// Timer to track wall run duration (if needed)
+	float WallRunDuration = 0.f;
+
+	// Configurable wall run parameters
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	float WallRunSpeed = 850.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	float MinWallRunJumpHeight = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	float WallRunGravityScale = .2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Jump")
+	float WallJumpStrength = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Jump")
+	float WallUpJumpStrength = 800.f;
+
+	bool bCanWallRun = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	float WallRunCooldownTime = 0.5f;
+
+	float VaultProgress;
 
 public:
 	//Getters / Setters
@@ -191,4 +242,6 @@ public:
 	{
 		MovementInput = NewInput;
 	}
+
+	FORCEINLINE auto GetCurrentCustomMovementMode() const { return CurrentCustomMovementMode; }
 };
