@@ -11,8 +11,8 @@
 UENUM()
 enum EFireModeType
 {
-    Automatic UMETA(DisplayName = "Automatic"),
-    Single UMETA(DisplayName = "Single")
+	Automatic UMETA(DisplayName = "Automatic"),
+	Single UMETA(DisplayName = "Single")
 };
 
 /**
@@ -21,164 +21,164 @@ enum EFireModeType
 UCLASS()
 class PARKOURGAME_API AWeaponActor : public AWeaponPickupMaster
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 protected:
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float Damage;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float Damage;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float Range;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float Range;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    int BulletsPerShot = 1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	int BulletsPerShot = 1;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FString WeaponName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FString WeaponName;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FString FireMuzzleSocketName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FString FireMuzzleSocketName;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FVector WeaponDefaultRelativeLocation;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FVector WeaponDefaultRelativeLocation;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FVector WeaponAimRelativeLocation;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FVector WeaponDefaultRelativeRotation;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FVector WeaponPushbackRecoil;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FVector WeaponPushbackRecoil;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FVector WeaponRotationRecoil;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FVector WeaponRotationRecoil;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    FVector WeaponCameraRecoil;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	FVector WeaponCameraRecoil;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float RecoilSnappiness;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float RecoilSnappiness;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float RecoilReturnSpeed;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float RecoilReturnSpeed;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float MaxRandomSpreadAngle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float MaxRandomSpreadAngle;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    USoundBase *FireSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	USoundBase* FireSound;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    TEnumAsByte<EFireModeType> FireModeType;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TEnumAsByte<EFireModeType> FireModeType;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    float WeaponFireDelay;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	float WeaponFireDelay;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    UAnimationAsset *ReloadAnimation;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	UAnimationAsset* ReloadAnimation;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    int DefaultMagazineSize;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	int DefaultMagazineSize;
 
 public:
-    UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    class UCameraComponent *PlayerCamera;
+	UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* PlayerCamera;
 
-    ///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 
-    FORCEINLINE auto GetCanShoot() { return bCanShoot; }
-    FORCEINLINE void SetCanShoot(bool canShoot) { bCanShoot = canShoot; }
+	FORCEINLINE auto GetCanShoot() { return bCanShoot; }
+	FORCEINLINE void SetCanShoot(bool canShoot) { bCanShoot = canShoot; }
 
-    FORCEINLINE auto GetIsReloading() { return bIsReloading; }
+	FORCEINLINE auto GetIsReloading() { return bIsReloading; }
 
-    FORCEINLINE auto GetDamage() { return Damage; }
+	FORCEINLINE auto GetDamage() { return Damage; }
 
-    FORCEINLINE auto GetRange() { return Range; }
-    
-    FORCEINLINE auto GetWeaponName() { return WeaponName; }
+	FORCEINLINE auto GetRange() { return Range; }
 
-    FORCEINLINE auto GetFireMuzzleSocketName() { return FireMuzzleSocketName; }
+	FORCEINLINE auto GetWeaponName() { return WeaponName; }
 
-    FORCEINLINE auto GetWeaponDefaultRelativeLocation() { return WeaponDefaultRelativeLocation; }
+	FORCEINLINE auto GetFireMuzzleSocketName() { return FireMuzzleSocketName; }
 
-    FORCEINLINE auto GetWeaponAimRelativeLocation() { return WeaponAimRelativeLocation; }
+	FORCEINLINE auto GetWeaponDefaultRelativeLocation() { return WeaponDefaultRelativeLocation; }
 
-    FORCEINLINE auto GetWeaponRecoil() { return WeaponCameraRecoil; }
+	FORCEINLINE auto GetWeaponDefaultRelativeRotation() { return WeaponDefaultRelativeRotation; }
 
-    FORCEINLINE auto GetRecoilSnappiness() { return RecoilSnappiness; }
+	FORCEINLINE auto GetWeaponRecoil() { return WeaponCameraRecoil; }
 
-    FORCEINLINE auto GetRecoilReturnSpeed() { return RecoilReturnSpeed; }
+	FORCEINLINE auto GetRecoilSnappiness() { return RecoilSnappiness; }
 
-    FORCEINLINE auto GetMaxRandomSpreadAngle() { return MaxRandomSpreadAngle; }
+	FORCEINLINE auto GetRecoilReturnSpeed() { return RecoilReturnSpeed; }
 
-    FORCEINLINE auto GetFireSound() { return FireSound; }
+	FORCEINLINE auto GetMaxRandomSpreadAngle() { return MaxRandomSpreadAngle; }
 
-    FORCEINLINE auto GetFireModeType() { return FireModeType; }
+	FORCEINLINE auto GetFireSound() { return FireSound; }
 
-    FORCEINLINE auto GetWeaponFireDelay() { return WeaponFireDelay; }
+	FORCEINLINE auto GetFireModeType() { return FireModeType; }
 
-    FORCEINLINE auto GetReloadAnimation() { return ReloadAnimation; }
+	FORCEINLINE auto GetWeaponFireDelay() { return WeaponFireDelay; }
 
-    // FORCEINLINE auto GetPlayerCamera() { return PlayerCamera; }
+	FORCEINLINE auto GetReloadAnimation() { return ReloadAnimation; }
+
+	// FORCEINLINE auto GetPlayerCamera() { return PlayerCamera; }
 
 private:
 
 protected:
-    FRotator CurrentCameraRotation;
+	FRotator CurrentCameraRotation;
 
-    FRotator TargetCameraRotation;
+	FRotator TargetCameraRotation;
 
-    FVector CurrentRelativeLocation;
+	FVector CurrentRelativeLocation;
 
-    FVector TargetRelativeLocation;
+	FVector TargetRelativeLocation;
 
-    FRotator CurrentRelativeRotation;
+	FRotator CurrentRelativeRotation;
 
-    FRotator TargetRelativeRotation;
+	FRotator TargetRelativeRotation;
 
-    FTimerHandle FireTimerHandle;
+	FTimerHandle FireTimerHandle;
 
-    UFUNCTION(BlueprintCallable)
-    void Recoil();
+	UFUNCTION(BlueprintCallable)
+	void Recoil();
 
-    UPROPERTY(BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    bool bIsReloading;
+	UPROPERTY(BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	bool bIsReloading;
 
-    int CurrentAmmo;
+	int CurrentAmmo;
 
-    UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    bool bIsCurrentlyHeld;
+	UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	bool bIsCurrentlyHeld;
 
-    UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-    bool JustForTest;
+	UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	bool JustForTest;
 
-    FTimerHandle FireDelayTimerHandle;
+	FTimerHandle FireDelayTimerHandle;
 
-    void StopFire();
+	void StopFire();
 
-    virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
 
-    virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(float DeltaSeconds) override;
 
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-    void WhenWeaponFire();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void WhenWeaponFire();
 
-    virtual void WhenWeaponFire_Implementation();
+	virtual void WhenWeaponFire_Implementation();
 
-    virtual void OnWeaponUnequip_Implementation();
+	virtual void OnWeaponUnequip_Implementation();
 
 public:
-    // Sets default values for this character's properties
-    AWeaponActor();
+	// Sets default values for this character's properties
+	AWeaponActor();
 
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-    void FireWeapon(bool IsPressed);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void FireWeapon(bool IsPressed);
 
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-    void ReloadWeapon();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ReloadWeapon();
 
-    virtual void ResetFire();
+	virtual void ResetFire();
 
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-    void OnWeaponUnequip();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnWeaponUnequip();
 
-    bool bCanShoot = true;
+	bool bCanShoot = true;
 };

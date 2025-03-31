@@ -88,8 +88,6 @@ protected:
 
 	bool CheckCapsuleCollison(const FVector& Center, float HalfHeight, float Radius) const;
 
-	void SetCustomMovementMode(ECustomMovementMode NewMovementMode);
-
 	void OnCustomMovementModeChanged(ECustomMovementMode PrevMovementMode);
 
 	void ResolveMovement();
@@ -150,6 +148,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void WallJump();
 
+	UFUNCTION(BlueprintCallable)
+	void SetCustomMovementMode(ECustomMovementMode NewMovementMode);
+
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	FMovementSetting MovementSetting = {
@@ -204,6 +205,7 @@ protected:
 	bool bIsSprintKeyDown = false;
 	bool bIsCrouchKeyDown = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	FVector2D MovementInput;
 	bool IsExitingWall;
 

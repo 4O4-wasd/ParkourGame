@@ -7,6 +7,11 @@
 void AWeaponPickupMaster::Interact_Implementation(UWeaponControllerComponent* Controller)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("This is an on screen message!"));
-        WeaponController = Controller;
+	WeaponController = Controller;
 	WeaponController->SpawnWeapon(this);
+}
+
+void AWeaponPickupMaster::OnWeaponEquip_Implementation()
+{
+	// do stuff
 }

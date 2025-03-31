@@ -131,6 +131,7 @@ protected:
 	void JumpVault();
 
 	void Move(const FInputActionValue& Value);
+	void StopMove();
 
 	void Look(const FInputActionValue& Value);
 
@@ -186,6 +187,8 @@ protected:
 public:
 	FORCEINLINE auto GetCurrentWeapon() const { return CurrentWeapon; }
 	FORCEINLINE void ChangeCameraLag(const bool bIsEnabled) const { CameraBoom->bEnableCameraLag = bIsEnabled; }
+	FORCEINLINE auto GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE auto GetBetterCharacterMovement() const { return BetterCharacterMovement; }
 
 	bool bLockMovement;
 };

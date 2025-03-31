@@ -179,9 +179,12 @@ void AParkourCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
-
-		BetterCharacterMovement->SetMovementInput(MovementVector);
 	}
+}
+
+void AParkourCharacter::StopMove()
+{
+	BetterCharacterMovement->SetMovementInput(FVector2d::Zero());
 }
 
 void AParkourCharacter::Look(const FInputActionValue& Value)
@@ -209,6 +212,7 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AParkourCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &AParkourCharacter::StopMove);
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AParkourCharacter::Look);

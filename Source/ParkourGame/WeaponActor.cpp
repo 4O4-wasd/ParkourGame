@@ -2,6 +2,7 @@
 
 #include "WeaponActor.h"
 
+#include "MyUtils.h"
 #include "Engine/World.h"
 #include "ParkourCharacter.h"
 #include "Camera/CameraComponent.h"
@@ -55,7 +56,11 @@ void AWeaponActor::Tick(float DeltaSeconds)
 			                                           GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
 			SetActorRelativeLocation(CurrentRelativeLocation);
 
-			TargetRelativeRotation = FMath::RInterpTo(TargetRelativeRotation, FRotator::ZeroRotator,
+			TargetRelativeRotation = FMath::RInterpTo(TargetRelativeRotation,
+			                                          UMyUtils::VectorToRotator(
+				                                          (WeaponController->GetSecondCurrentWeapon() == this)
+					                                          ? WeaponDefaultRelativeRotation * FVector(-1, 1, 1)
+					                                          : WeaponDefaultRelativeRotation),
 			                                          GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
 			CurrentRelativeRotation = FMath::RInterpTo(CurrentRelativeRotation, TargetRelativeRotation,
 			                                           GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
