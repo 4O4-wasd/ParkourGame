@@ -97,6 +97,8 @@ protected:
 	// Previous position for momentum calculation
 	FVector PreviousLocation;
 
+	FVector DebugLineEnd;
+
 	// Current swing angle
 	float SwingAngle;
 

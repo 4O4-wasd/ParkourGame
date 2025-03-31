@@ -7,6 +7,7 @@
 #include "ParkourCharacter.h"
 #include "WeaponControllerComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
@@ -23,6 +24,7 @@ ASwingWeaponActor::ASwingWeaponActor()
 void ASwingWeaponActor::BeginPlay()
 {
 	Super::BeginPlay();
+	DebugLineEnd = WeaponMesh->GetSocketLocation(FName(*FireMuzzleSocketName));
 }
 
 void ASwingWeaponActor::Tick(const float DeltaSeconds)
@@ -34,10 +36,13 @@ void ASwingWeaponActor::Tick(const float DeltaSeconds)
 		{
 			ApplySwingPhysics(DeltaSeconds);
 
+			DebugLineEnd = UKismetMathLibrary::VInterpTo(DebugLineEnd,
+			                                             WebAttachPoint, DeltaSeconds, 8);
+
 			DrawDebugLine(
 				GetWorld(),
 				WeaponMesh->GetSocketLocation(FName(*FireMuzzleSocketName)),
-				WebAttachPoint,
+				DebugLineEnd,
 				FColor::Black,
 				false,
 				.0f,
@@ -60,6 +65,10 @@ void ASwingWeaponActor::Tick(const float DeltaSeconds)
 					2.0f
 				);
 			}
+		}
+		else
+		{
+			DebugLineEnd = WeaponMesh->GetSocketLocation(FName(*FireMuzzleSocketName));
 		}
 		PreviousLocation = ParkourOwner->GetActorLocation();
 		RotateTowardsAttachPoint();
@@ -131,6 +140,7 @@ bool ASwingWeaponActor::ShootWeb()
 		ParkourOwner->GetCharacterMovement()->GravityScale = SwingingGravityScale;
 		ParkourOwner->GetBetterCharacterMovement()->SetCustomMovementMode(Sprinting);
 
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, WeaponMesh->GetSocketLocation(*FireMuzzleSocketName));
 		return true;
 	}
 
