@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "BetterCharacterMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "ParkourCharacter.generated.h"
 
 class UWeaponControllerComponent;
@@ -183,7 +184,8 @@ protected:
 	UWeaponControllerComponent* WeaponController;
 
 public:
-	FORCEINLINE auto GetCurrentWeapon() { return CurrentWeapon; }
+	FORCEINLINE auto GetCurrentWeapon() const { return CurrentWeapon; }
+	FORCEINLINE void ChangeCameraLag(const bool bIsEnabled) const { CameraBoom->bEnableCameraLag = bIsEnabled; }
 
 	bool bLockMovement;
 };

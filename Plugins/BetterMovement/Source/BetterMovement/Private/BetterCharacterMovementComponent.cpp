@@ -8,11 +8,18 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Math/MathFwd.h"
+#include "ParkourGame/ParkourCharacter.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
 if (GEngine) \
 { \
 GEngine->AddOnScreenDebugMessage(-1, Time, Color, Message); \
+}
+
+#define CHANGE_CAMERA_LAG(bIsEnabled) \
+if (const auto CC = Cast<AParkourCharacter>(CharacterOwner)) \
+{ \
+	CC->ChangeCameraLag(false); \
 }
 
 
@@ -55,6 +62,10 @@ void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTic
 	}
 	else if (CanWallRun())
 	{
+		if (!GetWorld())
+		{
+			return;
+		}
 		// Check for a valid wall on either side.
 		FVector WallNormal;
 		bool bIsRightSide;
@@ -62,6 +73,11 @@ void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTic
 		{
 			StartWallRun(WallNormal, bIsRightSide);
 		}
+	}
+
+	if (AutoSprint && CurrentCustomMovementMode == Walking)
+	{
+		SetCustomMovementMode(Sprinting);
 	}
 
 	if (Velocity.Size2D() > 800)
@@ -139,12 +155,8 @@ bool UBetterCharacterMovementComponent::CanSprint() const
 
 bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 {
-	if (CurrentCustomMovementMode == Vaulting)
-	{
-		return false;
-	}
-
-	if (Velocity.Size() < 700)
+	if (CurrentCustomMovementMode == Vaulting || CurrentCustomMovementMode == Walking || CurrentCustomMovementMode ==
+		WallRunning)
 	{
 		return false;
 	}
@@ -160,6 +172,11 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 		Hit, Location + FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight()),
 		Location - FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight()),
 		ECC_Visibility, CollisionParams);
+
+	if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("Non-Vaultable"))
+	{
+		return false;
+	}
 
 	if (!DidHit)
 	{
@@ -226,9 +243,20 @@ bool UBetterCharacterMovementComponent::CheckCapsuleCollison(const FVector& Cent
 
 void UBetterCharacterMovementComponent::Vault()
 {
+	if (CurrentCustomMovementMode == WallRunning)
+	{
+		return;
+	}
 	VaultProgress = 0;
 	StartingVaultLocation = CharacterOwner->GetActorLocation();
 	SetCustomMovementMode(Vaulting);
+	CHANGE_CAMERA_LAG(true);
+
+	FTimerHandle VaultStartTimer;
+	GetWorld()->GetTimerManager().SetTimer(VaultStartTimer, [&]()
+	{
+		CHANGE_CAMERA_LAG(false);
+	}, .5, false);
 }
 
 void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovementMode NewMovementMode)
@@ -294,6 +322,13 @@ void UBetterCharacterMovementComponent::ResolveMovement()
 
 void UBetterCharacterMovementComponent::CameraTilt() const
 {
+	if (!CharacterOwner)
+	{
+		return;
+	}
+	FVector WallNormal;
+	bool bIsRightSide;
+	FindWall(WallNormal, bIsRightSide);
 	const FRotator Rotation = UKismetMathLibrary::RInterpTo(GetController()->GetControlRotation(),
 	                                                        FRotator(GetController()->GetControlRotation().Pitch,
 	                                                                 GetController()->GetControlRotation().Yaw,
@@ -301,10 +336,16 @@ void UBetterCharacterMovementComponent::CameraTilt() const
 		                                                                       ? SlideCameraTilt
 		                                                                       : CurrentCustomMovementMode == Vaulting
 		                                                                       ? VaultCameraTilt
+		                                                                       : CurrentCustomMovementMode ==
+		                                                                       WallRunning
+		                                                                       ? bIsRightSide
+				                                                                       ? WallRunCameraTilt
+				                                                                       : -WallRunCameraTilt
 		                                                                       : 0)),
 	                                                        GetWorld()->GetDeltaSeconds(),
-	                                                        10);
-	if (CurrentCustomMovementMode == Sliding || CurrentCustomMovementMode == Vaulting)
+	                                                        5);
+	if (CurrentCustomMovementMode == Sliding || CurrentCustomMovementMode == Vaulting || CurrentCustomMovementMode ==
+		WallRunning)
 	{
 		GetController()->SetControlRotation(Rotation);
 		return;
@@ -323,12 +364,14 @@ void UBetterCharacterMovementComponent::BeginCrouch()
 {
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(StandingCapsuleHalfHeight / 2);
 	CharacterOwner->GetMesh()->SetRelativeLocation(FVector(0, 0, -45));
+	Velocity += FVector(0, 0, 100);
 }
 
 void UBetterCharacterMovementComponent::EndCrouch()
 {
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(StandingCapsuleHalfHeight);
 	CharacterOwner->GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
+	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(0, 0, 45));
 }
 
 FVector UBetterCharacterMovementComponent::CalculateFloorInfluence(FVector FloorNormal)
@@ -382,6 +425,11 @@ void UBetterCharacterMovementComponent::SlideUpdate()
 
 	const auto bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 	if (!bHit)
+	{
+		return;
+	}
+
+	if (IsFalling())
 	{
 		return;
 	}
@@ -450,10 +498,6 @@ void UBetterCharacterMovementComponent::StartWallRun(const FVector& WallNormal, 
 		WallRunDirection = -WallRunDirection;
 	}
 
-	float WallPushForce = 500000.0f;
-	// Since CurrentWallNormal points out from the wall, we use -CurrentWallNormal to push toward it.
-	Velocity += -CurrentWallNormal * WallPushForce;
-
 	// Ensure the wall run direction aligns with the actor's forward vector.
 	// If it doesn't, flip it so the character moves where they're looking.
 	if (FVector::DotProduct(WallRunDirection, CharacterOwner->GetActorForwardVector()) < 0.f)
@@ -465,6 +509,15 @@ void UBetterCharacterMovementComponent::StartWallRun(const FVector& WallNormal, 
 
 	// Set the fixed wall run speed.
 	Velocity = WallRunDirection * WallRunSpeed;
+
+	CHANGE_CAMERA_LAG(true);
+
+	FTimerHandle WallRunStartTimer;
+	GetWorld()->GetTimerManager().SetTimer(WallRunStartTimer, [&]()
+	{
+		CHANGE_CAMERA_LAG(false);
+	}, .5, false);
+
 
 	UE_LOG(LogTemp, Log, TEXT("Wall Run Started"));
 }
@@ -483,24 +536,34 @@ void UBetterCharacterMovementComponent::UpdateWallRun()
 		WallRunDirection = -WallRunDirection;
 	}
 	WallRunDirection.Normalize();
-	Velocity = WallRunDirection * WallRunSpeed;
+	float WallPushForce = 100.0f;
+	AddForce(WallRunDirection * WallRunSpeed * 30);
+
+	// Since CurrentWallNormal points out from the wall, we use -CurrentWallNormal to push toward it.
+	Velocity += -CurrentWallNormal * WallPushForce;
 
 	if (!CanWallRun())
 	{
-		StopWallRun();
+		Velocity += CurrentWallNormal * WallPushForce;
+		StopWallRun(1.f);
+		return;
 	}
 
-	if (MovementInput.Y <= 0)
+	if (!(MovementInput.Y > 0))
 	{
-		StopWallRun();
+		Velocity += CurrentWallNormal * WallPushForce;
+		return;
 	}
+
+	Velocity = UKismetMathLibrary::Vector_ClampSizeMax(Velocity, 2000);
 
 	// Optionally, check if conditions to stop wall run are met (e.g., player input, no wall, etc.)
-	FVector DummyNormal;
 	bool bDummy;
-	if (!FindWall(DummyNormal, bDummy))
+	if (FVector DummyNormal; !FindWall(DummyNormal, bDummy))
 	{
-		StopWallRun();
+		Velocity += CurrentWallNormal * WallPushForce;
+		StopWallRun(1.f);
+		return;
 	}
 }
 
@@ -509,39 +572,40 @@ void UBetterCharacterMovementComponent::WallJump()
 	// Only execute if we're currently wall running.
 	if (CurrentCustomMovementMode == WallRunning)
 	{
+		CHANGE_CAMERA_LAG(true);
 		// Calculate the jump direction:
 		// Combining upward with CurrentWallNormal pushes the character away from the wall.
-		FVector JumpOffDirection = (FVector::UpVector * 1 + CurrentWallNormal * 1 + CharacterOwner->
-			GetActorForwardVector() * 1);
+		FVector JumpOffDirection = (FVector::UpVector * 1 + CurrentWallNormal * 1);
 
+		StopWallRun();
 		// Launch the character in that direction.
-		CharacterOwner->LaunchCharacter(
-			(FVector::UpVector * WallUpJumpStrength + CurrentWallNormal * WallJumpStrength +
-				CharacterOwner->
-				GetActorForwardVector() * WallJumpStrength), true, true);
-
-		// Exit wall run state.
-		ResolveMovement();
-		GravityScale = 2.0f; // Reset gravity if it was modified.
+		Velocity = FVector::UpVector * WallUpJumpStrength + (CurrentWallNormal + CharacterOwner->
+				GetActorForwardVector()) *
+			WallJumpStrength;
+		FTimerHandle WallJumpTimer;
+		GetWorld()->GetTimerManager().SetTimer(WallJumpTimer, [&]()
+		{
+			CHANGE_CAMERA_LAG(false);
+		}, .5, false);
 
 		UE_LOG(LogTemp, Log, TEXT("Wall Jump executed: %s"), *JumpOffDirection.ToString());
 
 		// Disable wall running temporarily to avoid immediate re-trigger.
-		bCanWallRun = false;
-		FTimerHandle WallRunCooldownTimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(WallRunCooldownTimerHandle, [&]()
-		{
-			bCanWallRun = true;
-		}, WallRunCooldownTime, false);
 
 		UE_LOG(LogTemp, Log, TEXT("Wall Jump executed: %s"), *JumpOffDirection.ToString());
 	}
 }
 
-void UBetterCharacterMovementComponent::StopWallRun()
+void UBetterCharacterMovementComponent::StopWallRun(float CoolDown)
 {
 	GravityScale = 2.0f;
+	bCanWallRun = false;
 	ResolveMovement();
+	FTimerHandle WallRunCooldownTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(WallRunCooldownTimerHandle, [&]()
+	{
+		bCanWallRun = true;
+	}, CoolDown, false);
 	PRINT_TO_SCREEN(FString::Printf(TEXT("Wall run stopped")), 100.0f,
 	                FColor::Orange);
 	UE_LOG(LogTemp, Log, TEXT("Wall Run Stopped"));
@@ -560,45 +624,57 @@ bool UBetterCharacterMovementComponent::CanWallRun() const
 		ECC_Visibility);
 }
 
-bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& bIsRightSide)
+bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& bIsRightSide) const
 {
-	// Set the start location for the trace (character location)
-	FVector Start = CharacterOwner->GetActorLocation();
-	// Calculate right and left directions
-	FVector Right = CharacterOwner->GetActorRightVector();
-	FVector Left = -Right;
-	float TraceDistance = 100.f; // Adjust based on your character size and level design
-
-	FHitResult HitResult;
+	const FVector Start = CharacterOwner->GetActorLocation();
+	constexpr float TraceDistance = 100.f;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CharacterOwner);
 
-	// Trace to the right
-	bool bHitRight = GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Right * TraceDistance,
-	                                                      ECC_Visibility, QueryParams);
-	// Optionally draw the debug line:
-	DrawDebugLine(GetWorld(), Start, Start + Right * TraceDistance, FColor::Blue, true, 0.1f);
-
-	if (bHitRight && FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
+	// Lambda function for wall trace
+	auto PerformWallTrace = [&](const FVector& Direction, const bool RightSide)
 	{
-		OutWallNormal = HitResult.Normal;
-		bIsRightSide = true;
-		return true;
-	}
+		FHitResult HitResult;
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(
+			HitResult, Start, Start + Direction * TraceDistance, ECC_Visibility, QueryParams
+		);
 
-	// Trace to the left
-	bool bHitLeft = GetWorld()->LineTraceSingleByChannel(HitResult, Start, Start + Left * TraceDistance, ECC_Visibility,
-	                                                     QueryParams);
-	DrawDebugLine(GetWorld(), Start, Start + Left * TraceDistance, FColor::Blue, true, 0.1f);
+		DrawDebugLine(GetWorld(), Start, Start + Direction * TraceDistance, FColor::Blue, false, 0.1f);
 
-	if (bHitLeft && FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
-	{
-		OutWallNormal = HitResult.Normal;
-		bIsRightSide = false;
-		return true;
-	}
+		if (!bHit)
+		{
+			const bool bBottomHit = GetWorld()->LineTraceSingleByChannel(
+				HitResult,
+				Start - FVector(0, 0, 70),
+				Start - FVector(0, 0, 70) + Direction * TraceDistance, ECC_Visibility, QueryParams
+			);
+			DrawDebugLine(
+				GetWorld(),
+				Start - FVector(0, 0, 70),
+				Start - FVector(0, 0, 70) + Direction * TraceDistance, FColor::Blue, false, 0.1f);
+			if (bBottomHit && HitResult.GetActor() && HitResult.GetActor()->ActorHasTag("WallRunnable") &&
+				FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
+			{
+				OutWallNormal = HitResult.Normal;
+				bIsRightSide = RightSide;
+				return true;
+			}
+			return false;
+		}
 
-	return false;
+		if (bHit && HitResult.GetActor() && HitResult.GetActor()->ActorHasTag("WallRunnable") &&
+			FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
+		{
+			OutWallNormal = HitResult.Normal;
+			bIsRightSide = RightSide;
+			return true;
+		}
+		return false;
+	};
+
+	// Perform traces for both right and left
+	return PerformWallTrace(CharacterOwner->GetActorRightVector(), true) ||
+		PerformWallTrace(-CharacterOwner->GetActorRightVector(), false);
 }
 
 
@@ -642,10 +718,12 @@ void UBetterCharacterMovementComponent::CrouchPressed()
 	if (CurrentCustomMovementMode == Walking)
 	{
 		SetCustomMovementMode(Crouching);
+		return;
 	}
 	if (CurrentCustomMovementMode == Sprinting)
 	{
 		SetCustomMovementMode(Sliding);
+		return;
 	}
 }
 

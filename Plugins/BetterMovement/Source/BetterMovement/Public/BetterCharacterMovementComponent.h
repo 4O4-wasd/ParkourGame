@@ -117,7 +117,7 @@ protected:
 
 	// Helper functions to detect walls
 	bool CanWallRun() const;
-	bool FindWall(FVector& OutWallNormal, bool& bIsRightSide);
+	bool FindWall(FVector& OutWallNormal, bool& bIsRightSide) const;
 
 	virtual void DiagonalMove();
 
@@ -139,7 +139,7 @@ public:
 	void CrouchReleased();
 
 	UFUNCTION(BlueprintCallable)
-	void StopWallRun();
+	void StopWallRun(float CoolDown = .5f);
 
 	UFUNCTION(BlueprintCallable)
 	void Vault();
@@ -187,6 +187,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	float VaultCameraTilt = 10;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
+	float WallRunCameraTilt = 10;
+
 	float StandingCapsuleHalfHeight;
 
 	FTimerHandle SlideTimerHandler;
@@ -206,6 +209,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<ECustomMovementMode> CurrentCustomMovementMode;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement")
+	bool AutoSprint;
 
 	// The wall normal of the current wall run surface
 	FVector CurrentWallNormal;
