@@ -37,7 +37,7 @@ void ASwingWeaponActor::Tick(const float DeltaSeconds)
 			ApplySwingPhysics(DeltaSeconds);
 
 			DebugLineEnd = UKismetMathLibrary::VInterpTo(DebugLineEnd,
-			                                             WebAttachPoint, DeltaSeconds, 8);
+			                                             WebAttachPoint, DeltaSeconds, 6);
 
 			DrawDebugLine(
 				GetWorld(),
@@ -206,7 +206,7 @@ bool ASwingWeaponActor::GetWebTargetPoint(FVector& OutHitLocation) const
 		QueryParams
 	);
 
-	DrawDebugBox(GetWorld(), (LineStart + LineEnd) / 2, BoxExtent, FColor::Red, false, 10.0f);
+	// DrawDebugBox(GetWorld(), (LineStart + LineEnd) / 2, BoxExtent, FColor::Red, false, 10.0f);
 
 	// If we hit something, use that as the web attach point
 	if (bHit)
@@ -226,7 +226,7 @@ void ASwingWeaponActor::UpdateSwingPlane()
 	}
 
 	// Calculate the swing plane normal (perpendicular to the direction of movement and web)
-	FVector ToAttachPoint = WebAttachPoint - ParkourOwner->GetActorLocation();
+	const FVector ToAttachPoint = WebAttachPoint - ParkourOwner->GetActorLocation();
 	FVector MovementDirection = ParkourOwner->GetCharacterMovement()->Velocity.GetSafeNormal();
 
 	// If not moving, use camera right vector as direction
@@ -261,10 +261,6 @@ void ASwingWeaponActor::RotateTowardsAttachPoint() const
 	{
 		return;
 	}
-	// 5.0f is the speed of rotation
-
-	// Set the new rotation for this actor
-	UMyUtils::PrintToScreen(FName(TEXT("Yes")));
 	// SetActorRotation(FRotator(NewRotation.Yaw, NewRotation.Pitch, NewRotation.Roll));
 	const auto a = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), WebAttachPoint);
 	WeaponMesh->SetRelativeRotation(FRotator(
@@ -314,6 +310,9 @@ void ASwingWeaponActor::ApplySwingPhysics(const float DeltaTime)
 		const FVector TensionForce = NormalizedToAttach * (DistanceToAttachPoint - CurrentWebLength) * 200000.f;
 		ResultantForce += TensionForce;
 
+		// Set the scale of the static mesh based on the distance
+		const FVector NewScale = FVector(.05f, DistanceToAttachPoint * .009, .05f);
+		// Assuming you want the mesh to stretch along the Z-axis
 		// Apply constraint to velocity as well
 		const FVector VelocityAlongWeb = FVector::DotProduct(CurrentVelocity, NormalizedToAttach) * NormalizedToAttach;
 		if (DistanceToAttachPoint > CurrentWebLength && (!((ParkourOwner->GetActorLocation() - WebAttachPoint).Z > 200))

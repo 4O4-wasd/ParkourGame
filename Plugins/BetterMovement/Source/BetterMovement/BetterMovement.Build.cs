@@ -28,7 +28,8 @@ public class BetterMovement : ModuleRules
 			new string[]
 			{
 				"Core",
-				"InputCore"
+				"InputCore",
+				"CableComponent"
 				// ... add other public dependencies that you statically link with here ...
 			}
 		);
@@ -40,7 +41,9 @@ public class BetterMovement : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore", "ParkourGame", "ParkourGame", "ParkourGame"
+				"SlateCore",
+				"ParkourGame",
+				"CableComponent"
 				// ... add private dependencies that you statically link with here ...	
 			}
 		);
