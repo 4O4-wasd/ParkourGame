@@ -10,6 +10,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "TimerManager.h"
 #include "WeaponControllerComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
 if (GEngine) \
@@ -17,7 +19,10 @@ if (GEngine) \
 GEngine->AddOnScreenDebugMessage(-1, Time, Color, Message); \
 }
 
-AWeaponActor::AWeaponActor() { PrimaryActorTick.bCanEverTick = true; }
+AWeaponActor::AWeaponActor()
+{
+	PrimaryActorTick.bCanEverTick = true;
+}
 
 void AWeaponActor::BeginPlay()
 {
@@ -173,6 +178,7 @@ void AWeaponActor::WhenWeaponFire_Implementation()
 	GetWorld()->DebugDrawTraceTag = TraceTag;
 
 	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(WeaponController->CharacterOwner);
 
 	for (int i = 0; i < BulletsPerShot; ++i)
 	{
@@ -181,10 +187,76 @@ void AWeaponActor::WhenWeaponFire_Implementation()
 			Range);
 		FHitResult FireHitResult;
 		const bool bDidHit =
-			GetWorld()->LineTraceSingleByChannel(FireHitResult, MuzzleSocketLocation, End, ECC_Pawn, CollisionParams);
-		DrawDebugLine(GetWorld(), MuzzleSocketLocation, End, FColor::Magenta, false, 5);
+			GetWorld()->LineTraceSingleByChannel(FireHitResult, MuzzleSocketLocation, End, ECC_Visibility,
+			                                     CollisionParams);
+		if (BulletTraceSystem)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), BulletTraceSystem,
+			                                               WeaponMesh->GetSocketLocation(*FireMuzzleSocketName),
+			                                               (FireHitResult.ImpactPoint - WeaponMesh->GetSocketLocation(
+				                                               *FireMuzzleSocketName)).Rotation());
+			// GetWorld()->SpawnActor<AActor>(BulletTraceSystem, WeaponMesh->GetSocketLocation(*FireMuzzleSocketName),
+			//                                (FireHitResult.ImpactPoint - WeaponMesh->GetSocketLocation(
+			// 	                               *FireMuzzleSocketName)).Rotation(), FActorSpawnParameters());
+			// UNiagaraFunctionLibrary::SpawnSystemAttached(BulletTraceSystem, WeaponMesh, NAME_None,
+			//                                              WeaponMesh->GetSocketTransform(*FireMuzzleSocketName,
+			// 	                                                         RTS_Actor).
+			//                                                          GetLocation(), FRotator::ZeroRotator,
+			//                                              EAttachLocation::KeepRelativeOffset, true);
+		}
+		if (ImpactPointSystem && bDidHit)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactPointSystem, FireHitResult.ImpactPoint,
+			                                               WeaponMesh->GetComponentRotation() + FRotator(-90, 0, 0),
+			                                               FVector(ImpactPointScale));
+		}
+		// DrawDebugLine(GetWorld(), MuzzleSocketLocation, End, FColor::Magenta, false, 5);
 	}
-	UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleSocketLocation);
+
+	if (FireWeaponAnimation)
+	{
+		WeaponMesh->PlayAnimation(FireWeaponAnimation, false);
+	}
+
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, WeaponMesh->GetSocketLocation(*FireMuzzleSocketName));
+	}
+
+	if (ShellEjectSound)
+	{
+		FHitResult WeaponBottomHitResult;
+		const bool bDidHit = GetWorld()->LineTraceSingleByChannel(WeaponBottomHitResult,
+		                                                          WeaponMesh->GetComponentLocation(),
+		                                                          (WeaponMesh->GetUpVector() * -1 * 1000) + WeaponMesh->
+		                                                          GetComponentLocation(), ECC_Visibility,
+		                                                          CollisionParams);
+		DrawDebugLine(GetWorld(), WeaponMesh->GetComponentLocation(),
+		              (WeaponMesh->GetUpVector() * -1 * 1000) + WeaponMesh->GetComponentLocation(), FColor::Magenta,
+		              false, 5);
+
+		if (bDidHit)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, ShellEjectSound, WeaponBottomHitResult.ImpactPoint);
+		}
+	}
+
+	if (MuzzleFlashSystem)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAttached(MuzzleFlashSystem, WeaponMesh, NAME_None,
+		                                             WeaponMesh->GetSocketTransform(*FireMuzzleSocketName, RTS_Actor).
+		                                                         GetLocation(), FRotator::ZeroRotator,
+		                                             EAttachLocation::KeepRelativeOffset, true);
+		// UGameplayStatics::SpawnEmitterAttached(MuzzleFlash, WeaponMesh, NAME_None, WeaponMesh->GetSocketTransform(*FireMuzzleSocketName, RTS_World).GetLocation());
+	}
+
+	if (ShellEjectSystem)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAttached(ShellEjectSystem, WeaponMesh, NAME_None,
+		                                             WeaponMesh->GetSocketTransform(*ShellEjectSocketName, RTS_Actor).
+		                                                         GetLocation(), FRotator::ZeroRotator,
+		                                             EAttachLocation::KeepRelativeOffset, true);
+	}
 	Recoil();
 	--CurrentAmmo;
 }
@@ -207,6 +279,7 @@ void AWeaponActor::ResetFire()
 
 void AWeaponActor::OnWeaponUnequip_Implementation()
 {
+	ResetFire();
 	// do stuff
 }
 

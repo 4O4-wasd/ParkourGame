@@ -179,6 +179,7 @@ void AParkourCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+		BetterCharacterMovement->SetMovementInput(MovementVector);
 	}
 }
 
@@ -228,6 +229,10 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		                                   &UBetterCharacterMovementComponent::CrouchPressed);
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, BetterCharacterMovement,
 		                                   &UBetterCharacterMovementComponent::CrouchReleased);
+
+		// Dashing
+		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, BetterCharacterMovement,
+		                                   &UBetterCharacterMovementComponent::DashPressed);
 
 		// Firing
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, WeaponController,

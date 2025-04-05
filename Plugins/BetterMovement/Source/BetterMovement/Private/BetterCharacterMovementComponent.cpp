@@ -3,11 +3,13 @@
 
 #include "BetterCharacterMovementComponent.h"
 
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Math/MathFwd.h"
+#include "ParkourGame/MyUtils.h"
 #include "ParkourGame/ParkourCharacter.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
@@ -19,7 +21,7 @@ GEngine->AddOnScreenDebugMessage(-1, Time, Color, Message); \
 #define CHANGE_CAMERA_LAG(bIsEnabled) \
 if (const auto CC = Cast<AParkourCharacter>(CharacterOwner)) \
 { \
-	CC->ChangeCameraLag(false); \
+\
 }
 
 
@@ -120,19 +122,16 @@ void UBetterCharacterMovementComponent::CustomMovementUpdate()
 
 bool UBetterCharacterMovementComponent::CanStand() const
 {
-	if (bIsCrouchKeyDown)
-	{
-		return true;
-	}
-
 	//Re-initialize hit info
 	FHitResult HitResult;
-
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(CharacterOwner);
 	const FVector Start = CharacterOwner->GetActorLocation() - FVector(
 		0, 0, CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
-	const FVector End = Start + FVector(0, 0, StandingCapsuleHalfHeight * 2.0f);
+	const FVector End = Start + FVector(0, 0, StandingCapsuleHalfHeight * 2);
+	DrawDebugLine(GetWorld(), Start, End, FColor::Emerald);
 
-	return GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Pawn);
+	return !GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
 }
 
 void UBetterCharacterMovementComponent::SpeedControl()
@@ -191,8 +190,6 @@ bool UBetterCharacterMovementComponent::CanVaultToHit(const UCapsuleComponent* C
 {
 	const bool IsInRange = UKismetMathLibrary::InRange_FloatFloat(Hit.Location.Z - Hit.TraceEnd.Z, 50,
 	                                                              170);
-	PRINT_TO_SCREEN(FString::Printf(TEXT("ExitingWall: %i"), IsInRange), 0.0f,
-	                FColor::Red);
 	if (!IsInRange)
 	{
 		return false;
@@ -278,7 +275,11 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 	case Sprinting:
 		EndCrouch();
 		break;
+	case Dashing:
+		Dash();
+		break;
 	case Crouching:
+		StopWallRun();
 		EndSlide();
 		BeginCrouch();
 		break;
@@ -373,6 +374,24 @@ void UBetterCharacterMovementComponent::EndCrouch()
 	CharacterOwner->GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(0, 0, 45));
 }
+
+void UBetterCharacterMovementComponent::Dash()
+{
+	if (!bCanDash)
+	{
+		ResolveMovement();
+		return;
+	}
+	CharacterOwner->LaunchCharacter(Velocity * FVector(1, 1, 0) * DashSpeedMultiple, false, false);
+	bCanDash = false;
+	FTimerHandle _;
+	GetWorld()->GetTimerManager().SetTimer(_, [&]()
+	{
+		bCanDash = true;
+	}, DashCooldownTime, false);
+	ResolveMovement();
+}
+
 
 FVector UBetterCharacterMovementComponent::CalculateFloorInfluence(FVector FloorNormal)
 {
@@ -536,8 +555,8 @@ void UBetterCharacterMovementComponent::UpdateWallRun()
 		WallRunDirection = -WallRunDirection;
 	}
 	WallRunDirection.Normalize();
-	float WallPushForce = 100.0f;
-	AddForce(WallRunDirection * WallRunSpeed * 30);
+	float WallPushForce = 1000.0f;
+	AddForce(WallRunDirection * WallRunSpeed);
 
 	// Since CurrentWallNormal points out from the wall, we use -CurrentWallNormal to push toward it.
 	Velocity += -CurrentWallNormal * WallPushForce;
@@ -598,6 +617,10 @@ void UBetterCharacterMovementComponent::WallJump()
 
 void UBetterCharacterMovementComponent::StopWallRun(float CoolDown)
 {
+	if (CurrentCustomMovementMode != WallRunning)
+	{
+		return;
+	}
 	GravityScale = 2.0f;
 	bCanWallRun = false;
 	ResolveMovement();
@@ -627,7 +650,7 @@ bool UBetterCharacterMovementComponent::CanWallRun() const
 bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& bIsRightSide) const
 {
 	const FVector Start = CharacterOwner->GetActorLocation();
-	constexpr float TraceDistance = 100.f;
+	constexpr float TraceDistance = 60.f;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CharacterOwner);
 
@@ -733,6 +756,14 @@ void UBetterCharacterMovementComponent::CrouchReleased()
 	if (CurrentCustomMovementMode != Sliding)
 	{
 		ResolveMovement();
+	}
+}
+
+void UBetterCharacterMovementComponent::DashPressed()
+{
+	if (CurrentCustomMovementMode == Walking || CurrentCustomMovementMode == Sprinting)
+	{
+		SetCustomMovementMode(Dashing);
 	}
 }
 

@@ -15,6 +15,7 @@ enum ECustomMovementMode
 	Sliding UMETA(DisplayName = "Sliding"),
 	Vaulting UMETA(DisplayName = "Vaulting"),
 	WallRunning UMETA(DisplayName = "WallRunning"),
+	Dashing UMETA(DisplayName = "Dashing"),
 };
 
 UENUM(BlueprintType)
@@ -98,6 +99,8 @@ protected:
 
 	virtual void EndCrouch();
 
+	virtual void Dash();
+
 	virtual FVector CalculateFloorInfluence(FVector FloorNormal);
 
 	virtual void BeginSlide();
@@ -135,6 +138,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CrouchReleased();
+
+	UFUNCTION(BlueprintCallable)
+	void DashPressed();
 
 	UFUNCTION(BlueprintCallable)
 	void StopWallRun(float CoolDown = .5f);
@@ -195,6 +201,8 @@ private:
 
 	FTimerHandle SlideTimerHandler;
 
+	FTimerHandle EndCrouchTimerHandler;
+
 	FVector JumpTargetLocation;
 	// FTimerHandle SwingTimerHandler;
 
@@ -237,7 +245,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Jump")
 	float WallUpJumpStrength = 800.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+	float DashSpeedMultiple = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+	float DashCooldownTime = 10.f;
+
 	bool bCanWallRun = true;
+
+	bool bCanDash = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
 	float WallRunCooldownTime = 0.5f;

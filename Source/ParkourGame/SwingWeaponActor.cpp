@@ -257,7 +257,7 @@ void ASwingWeaponActor::RotateTowardsAttachPoint() const
 		return;
 	}
 
-	if (WebAttachPoint == FVector::Zero())
+	if (!bIsSwinging)
 	{
 		return;
 	}

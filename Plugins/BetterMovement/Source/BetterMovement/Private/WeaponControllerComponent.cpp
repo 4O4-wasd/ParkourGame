@@ -68,30 +68,35 @@ void UWeaponControllerComponent::PickUpWeapon()
 	}
 }
 
+void UWeaponControllerComponent::DropAWeapon(AWeaponActor*& WeaponToDrop, const bool IsASecondWeapon)
+{
+	if (WeaponToDrop)
+	{
+		WeaponToDrop->DetachFromActor(FDetachmentTransformRules(
+			EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, EDetachmentRule::KeepWorld, true));
+		WeaponToDrop->OnWeaponUnequip();
+		WeaponToDrop->EnableCollision();
+		WeaponToDrop->PlayerCamera = nullptr;
+		WeaponToDrop->WeaponController = nullptr;
+		if (!IsASecondWeapon)
+		{
+			Weapons.Remove(WeaponToDrop);
+		}
+		WeaponToDrop = nullptr;
+	}
+}
+
 void UWeaponControllerComponent::DropCurrentWeapon()
 {
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules(
-			EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, EDetachmentRule::KeepWorld, true));
-		CurrentWeapon->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(30, 30, 30));
-		CurrentWeapon->EnableCollision();
-		CurrentWeapon->PlayerCamera = nullptr;
-		CurrentWeapon->WeaponController = nullptr;
-		Weapons.Remove(CurrentWeapon);
-		CurrentWeapon = nullptr;
+		DropAWeapon(CurrentWeapon);
 		return;
 	}
 
 	if (SecondCurrentWeapon)
 	{
-		SecondCurrentWeapon->DetachFromActor(FDetachmentTransformRules(
-			EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, EDetachmentRule::KeepWorld, true));
-		SecondCurrentWeapon->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(30, 30, 30));
-		SecondCurrentWeapon->EnableCollision();
-		SecondCurrentWeapon->PlayerCamera = nullptr;
-		SecondCurrentWeapon->WeaponController = nullptr;
-		SecondCurrentWeapon = nullptr;
+		DropAWeapon(SecondCurrentWeapon, true);
 		return;
 	}
 }
@@ -101,13 +106,7 @@ void UWeaponControllerComponent::SpawnWeapon_Implementation(AWeaponPickupMaster*
 	const auto GunWeapon = Cast<AWeaponActor>(WeaponToSpawn);
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules(
-			EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, EDetachmentRule::KeepWorld, true));
-		CurrentWeapon->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(30, 30, 30));
-		CurrentWeapon->EnableCollision();
-		CurrentWeapon->PlayerCamera = nullptr;
-		CurrentWeapon->WeaponController = nullptr;
-		Weapons.Remove(CurrentWeapon);
+		DropAWeapon(CurrentWeapon);
 	}
 
 	Weapons.Insert(GunWeapon, CurrentWeaponIndex);
@@ -266,6 +265,7 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (CurrentWeapon && !SecondCurrentWeapon)
 	{
+		CurrentWeapon->ResetFire();
 		SecondCurrentWeapon = CurrentWeapon;
 		CurrentWeapon = nullptr;
 		SecondCurrentWeapon->AttachToComponent(SecondWeaponHolder,
@@ -277,6 +277,7 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (SecondCurrentWeapon && !CurrentWeapon)
 	{
+		SecondCurrentWeapon->ResetFire();
 		CurrentWeapon = SecondCurrentWeapon;
 		SecondCurrentWeapon = nullptr;
 		CurrentWeapon->AttachToComponent(WeaponHolder, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true));
@@ -288,6 +289,8 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (SecondCurrentWeapon && CurrentWeapon)
 	{
+		CurrentWeapon->ResetFire();
+		SecondCurrentWeapon->ResetFire();
 		const auto OldSecondWeapon = SecondCurrentWeapon;
 		const auto OldWeapon = CurrentWeapon;
 		CurrentWeapon = OldSecondWeapon;
