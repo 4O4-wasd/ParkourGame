@@ -187,13 +187,12 @@ void AWeaponActor::WhenWeaponFire_Implementation()
 			Range);
 		FHitResult FireHitResult;
 		const bool bDidHit =
-			GetWorld()->LineTraceSingleByChannel(FireHitResult, MuzzleSocketLocation, End, ECC_Visibility,
-			                                     CollisionParams);
+			GetWorld()->LineTraceSingleByChannel(FireHitResult, MuzzleSocketLocation, End, ECC_Pawn, CollisionParams);
 		if (BulletTraceSystem)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), BulletTraceSystem,
 			                                               WeaponMesh->GetSocketLocation(*FireMuzzleSocketName),
-			                                               (FireHitResult.ImpactPoint - WeaponMesh->GetSocketLocation(
+			                                               (End - WeaponMesh->GetSocketLocation(
 				                                               *FireMuzzleSocketName)).Rotation());
 			// GetWorld()->SpawnActor<AActor>(BulletTraceSystem, WeaponMesh->GetSocketLocation(*FireMuzzleSocketName),
 			//                                (FireHitResult.ImpactPoint - WeaponMesh->GetSocketLocation(
@@ -207,10 +206,8 @@ void AWeaponActor::WhenWeaponFire_Implementation()
 		if (ImpactPointSystem && bDidHit)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactPointSystem, FireHitResult.ImpactPoint,
-			                                               WeaponMesh->GetComponentRotation() + FRotator(-90, 0, 0),
-			                                               FVector(ImpactPointScale));
+			                                               WeaponMesh->GetComponentRotation() + FRotator(-90, 0, 0));
 		}
-		// DrawDebugLine(GetWorld(), MuzzleSocketLocation, End, FColor::Magenta, false, 5);
 	}
 
 	if (FireWeaponAnimation)
@@ -231,9 +228,9 @@ void AWeaponActor::WhenWeaponFire_Implementation()
 		                                                          (WeaponMesh->GetUpVector() * -1 * 1000) + WeaponMesh->
 		                                                          GetComponentLocation(), ECC_Visibility,
 		                                                          CollisionParams);
-		DrawDebugLine(GetWorld(), WeaponMesh->GetComponentLocation(),
-		              (WeaponMesh->GetUpVector() * -1 * 1000) + WeaponMesh->GetComponentLocation(), FColor::Magenta,
-		              false, 5);
+		// DrawDebugLine(GetWorld(), WeaponMesh->GetComponentLocation(),
+		//               (WeaponMesh->GetUpVector() * -1 * 1000) + WeaponMesh->GetComponentLocation(), FColor::Magenta,
+		//               false, 5);
 
 		if (bDidHit)
 		{

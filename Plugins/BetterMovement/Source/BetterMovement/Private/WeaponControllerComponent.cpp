@@ -74,8 +74,10 @@ void UWeaponControllerComponent::DropAWeapon(AWeaponActor*& WeaponToDrop, const 
 	{
 		WeaponToDrop->DetachFromActor(FDetachmentTransformRules(
 			EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, EDetachmentRule::KeepWorld, true));
-		WeaponToDrop->OnWeaponUnequip();
 		WeaponToDrop->EnableCollision();
+		WeaponToDrop->SetActorLocation(WeaponToDrop->GetActorLocation() + CharacterOwner->GetActorForwardVector() * 100,
+		                               false, nullptr, ETeleportType::TeleportPhysics);
+		WeaponToDrop->OnWeaponUnequip();
 		WeaponToDrop->PlayerCamera = nullptr;
 		WeaponToDrop->WeaponController = nullptr;
 		if (!IsASecondWeapon)
@@ -265,6 +267,10 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (CurrentWeapon && !SecondCurrentWeapon)
 	{
+		if (!CurrentWeapon->GetCanBeEquipedInSecondHand())
+		{
+			return;
+		}
 		CurrentWeapon->ResetFire();
 		SecondCurrentWeapon = CurrentWeapon;
 		CurrentWeapon = nullptr;
@@ -277,6 +283,10 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (SecondCurrentWeapon && !CurrentWeapon)
 	{
+		if (!SecondCurrentWeapon->GetCanBeEquipedInSecondHand())
+		{
+			return;
+		}
 		SecondCurrentWeapon->ResetFire();
 		CurrentWeapon = SecondCurrentWeapon;
 		SecondCurrentWeapon = nullptr;
@@ -289,6 +299,10 @@ void UWeaponControllerComponent::SwapWeaponSide()
 
 	if (SecondCurrentWeapon && CurrentWeapon)
 	{
+		if (!CurrentWeapon->GetCanBeEquipedInSecondHand() || !SecondCurrentWeapon->GetCanBeEquipedInSecondHand())
+		{
+			return;
+		}
 		CurrentWeapon->ResetFire();
 		SecondCurrentWeapon->ResetFire();
 		const auto OldSecondWeapon = SecondCurrentWeapon;
@@ -318,4 +332,8 @@ void UWeaponControllerComponent::SetLockMovement(const bool bLockMovement)
 	{
 		pkc->bLockMovement = bLockMovement;
 	}
+}
+
+void UWeaponControllerComponent::WeaponSway()
+{
 }

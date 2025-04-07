@@ -149,7 +149,7 @@ public:
 	void Vault();
 
 	UFUNCTION(BlueprintCallable)
-	bool CanVault(FVector& EndingLocation);
+	bool CanVault(FVector& EndingLocation) const;
 
 	UFUNCTION(BlueprintCallable)
 	void WallJump();

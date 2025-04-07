@@ -107,6 +107,12 @@ class PARKOURGAME_API AParkourCharacter : public ACharacter
 	UInputAction* SlideAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* EquipAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* UnequipAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AttackAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -188,6 +194,7 @@ protected:
 	UWeaponControllerComponent* WeaponController;
 
 public:
+	FORCEINLINE auto GetWeaponSway() const { WeaponSway; }
 	FORCEINLINE auto GetCurrentWeapon() const { return CurrentWeapon; }
 	FORCEINLINE void ChangeCameraLag(const bool bIsEnabled) const { CameraBoom->bEnableCameraLag = bIsEnabled; }
 	FORCEINLINE auto GetFollowCamera() const { return FollowCamera; }

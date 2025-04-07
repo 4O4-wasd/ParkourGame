@@ -72,6 +72,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetLockMovement(const bool bLockMovement);
 
+	void WeaponSway();
+
 
 #pragma endregion Functions
 
@@ -82,6 +84,8 @@ private:
 
 	FTimerHandle WeaponEquipTimerHandle;
 
+	FTimerHandle WeaponUnequipTimerHandle;
+
 	FTimerHandle SecondWeaponEquipTimerHandle;
 
 	FRotator CurrentCameraRotation;
@@ -90,6 +94,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	float DefaultCameraInterpSpeed = 8.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float MaxSwayDegree = 2.5;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = Weapons)

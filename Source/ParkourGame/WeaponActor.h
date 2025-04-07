@@ -61,6 +61,9 @@ protected:
 	FVector WeaponCameraRecoil;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	int DefaultMagazineSize;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	float RecoilSnappiness;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
@@ -68,6 +71,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	float MaxRandomSpreadAngle;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	bool bCanBeEquipedInSecondHand = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	USoundBase* FireSound;
@@ -88,9 +94,6 @@ protected:
 	UAnimationAsset* FireWeaponAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-	int DefaultMagazineSize;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	class UNiagaraSystem* MuzzleFlashSystem;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
@@ -102,47 +105,47 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	UNiagaraSystem* BulletTraceSystem;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-	float ImpactPointScale = 1;
-
 public:
 	UPROPERTY(BlueprintReadWrite, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* PlayerCamera;
 
 	///////////////////////////////////////////////////////////
 
-	FORCEINLINE auto GetCanShoot() { return bCanShoot; }
+	FORCEINLINE auto GetCanShoot() const { return bCanShoot; }
+
+	FORCEINLINE auto GetCanBeEquipedInSecondHand() const { return bCanBeEquipedInSecondHand; }
+
 	FORCEINLINE void SetCanShoot(bool canShoot) { bCanShoot = canShoot; }
 
-	FORCEINLINE auto GetIsReloading() { return bIsReloading; }
+	FORCEINLINE auto GetIsReloading() const { return bIsReloading; }
 
-	FORCEINLINE auto GetDamage() { return Damage; }
+	FORCEINLINE auto GetDamage() const { return Damage; }
 
-	FORCEINLINE auto GetRange() { return Range; }
+	FORCEINLINE auto GetRange() const { return Range; }
 
 	FORCEINLINE auto GetWeaponName() { return WeaponName; }
 
 	FORCEINLINE auto GetFireMuzzleSocketName() { return FireMuzzleSocketName; }
 
-	FORCEINLINE auto GetWeaponDefaultRelativeLocation() { return WeaponDefaultRelativeLocation; }
+	FORCEINLINE auto GetWeaponDefaultRelativeLocation() const { return WeaponDefaultRelativeLocation; }
 
-	FORCEINLINE auto GetWeaponDefaultRelativeRotation() { return WeaponDefaultRelativeRotation; }
+	FORCEINLINE auto GetWeaponDefaultRelativeRotation() const { return WeaponDefaultRelativeRotation; }
 
-	FORCEINLINE auto GetWeaponRecoil() { return WeaponCameraRecoil; }
+	FORCEINLINE auto GetWeaponRecoil() const { return WeaponCameraRecoil; }
 
-	FORCEINLINE auto GetRecoilSnappiness() { return RecoilSnappiness; }
+	FORCEINLINE auto GetRecoilSnappiness() const { return RecoilSnappiness; }
 
-	FORCEINLINE auto GetRecoilReturnSpeed() { return RecoilReturnSpeed; }
+	FORCEINLINE auto GetRecoilReturnSpeed() const { return RecoilReturnSpeed; }
 
-	FORCEINLINE auto GetMaxRandomSpreadAngle() { return MaxRandomSpreadAngle; }
+	FORCEINLINE auto GetMaxRandomSpreadAngle() const { return MaxRandomSpreadAngle; }
 
-	FORCEINLINE auto GetFireSound() { return FireSound; }
+	FORCEINLINE auto GetFireSound() const { return FireSound; }
 
-	FORCEINLINE auto GetFireModeType() { return FireModeType; }
+	FORCEINLINE auto GetFireModeType() const { return FireModeType; }
 
-	FORCEINLINE auto GetWeaponFireDelay() { return WeaponFireDelay; }
+	FORCEINLINE auto GetWeaponFireDelay() const { return WeaponFireDelay; }
 
-	FORCEINLINE auto GetReloadAnimation() { return ReloadAnimation; }
+	FORCEINLINE auto GetReloadAnimation() const { return ReloadAnimation; }
 
 	// FORCEINLINE auto GetPlayerCamera() { return PlayerCamera; }
 

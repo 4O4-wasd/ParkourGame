@@ -49,7 +49,7 @@ UBetterCharacterMovementComponent::UBetterCharacterMovementComponent()
 	// MovementSetting.Slide.Deceleration = 700;
 }
 
-void UBetterCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+void UBetterCharacterMovementComponent::TickComponent(const float DeltaTime, const ELevelTick TickType,
                                                       FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -129,7 +129,7 @@ bool UBetterCharacterMovementComponent::CanStand() const
 	const FVector Start = CharacterOwner->GetActorLocation() - FVector(
 		0, 0, CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 	const FVector End = Start + FVector(0, 0, StandingCapsuleHalfHeight * 2);
-	DrawDebugLine(GetWorld(), Start, End, FColor::Emerald);
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Emerald);
 
 	return !GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
 }
@@ -152,7 +152,7 @@ bool UBetterCharacterMovementComponent::CanSprint() const
 	return CanAttemptJump() && CanStand();
 }
 
-bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
+bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation) const
 {
 	if (CurrentCustomMovementMode == Vaulting || CurrentCustomMovementMode == Walking || CurrentCustomMovementMode ==
 		WallRunning)
@@ -172,7 +172,7 @@ bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation)
 		Location - FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight()),
 		ECC_Visibility, CollisionParams);
 
-	if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("Non-Vaultable"))
+	if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("NotVaultable"))
 	{
 		return false;
 	}
@@ -216,12 +216,12 @@ bool UBetterCharacterMovementComponent::CanVaultToHit(const UCapsuleComponent* C
 bool UBetterCharacterMovementComponent::CheckCapsuleCollison(const FVector& Center, const float HalfHeight,
                                                              const float Radius) const
 {
-	DrawDebugCapsule(GetWorld(), Center, HalfHeight, Radius, FQuat::Identity,
-	                 FColor::Green,
-	                 false,
-	                 0.f,
-	                 0,
-	                 2.0f);
+	// DrawDebugCapsule(GetWorld(), Center, HalfHeight, Radius, FQuat::Identity,
+	//                  FColor::Green,
+	//                  false,
+	//                  0.f,
+	//                  0,
+	//                  2.0f);
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
@@ -270,12 +270,17 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 	switch (CurrentCustomMovementMode)
 	{
 	case WallRunning:
+		EndCrouch();
+		break;
 	case Vaulting:
 	case Walking:
 	case Sprinting:
+		StopWallRun();
 		EndCrouch();
 		break;
 	case Dashing:
+		EndCrouch();
+		StopWallRun();
 		Dash();
 		break;
 	case Crouching:
@@ -284,6 +289,7 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 		BeginCrouch();
 		break;
 	case Sliding:
+		StopWallRun();
 		BeginCrouch();
 		BeginSlide();
 		break;
@@ -298,6 +304,11 @@ void UBetterCharacterMovementComponent::OnCustomMovementModeChanged(const ECusto
 	MaxWalkSpeed = GetCustomMovementSetting(CurrentCustomMovementMode).Speed;
 	MaxAcceleration = GetCustomMovementSetting(CurrentCustomMovementMode).Acceleration;
 	BrakingDecelerationWalking = GetCustomMovementSetting(CurrentCustomMovementMode).Deceleration;
+
+	if (PrevMovementMode == Crouching)
+	{
+		CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(0, 0, 45));
+	}
 
 	if (CurrentCustomMovementMode == Sliding)
 	{
@@ -372,7 +383,6 @@ void UBetterCharacterMovementComponent::EndCrouch()
 {
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleHalfHeight(StandingCapsuleHalfHeight);
 	CharacterOwner->GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
-	CharacterOwner->SetActorLocation(CharacterOwner->GetActorLocation() + FVector(0, 0, 45));
 }
 
 void UBetterCharacterMovementComponent::Dash()
@@ -453,7 +463,7 @@ void UBetterCharacterMovementComponent::SlideUpdate()
 		return;
 	}
 
-	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1.0f, 0, 1);
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1.0f, 0, 1);
 
 	const FVector AppliedForce = CalculateFloorInfluence(HitResult.ImpactNormal) * 1800000.0;
 	AddForce(AppliedForce);
@@ -615,7 +625,7 @@ void UBetterCharacterMovementComponent::WallJump()
 	}
 }
 
-void UBetterCharacterMovementComponent::StopWallRun(float CoolDown)
+void UBetterCharacterMovementComponent::StopWallRun(const float CoolDown)
 {
 	if (CurrentCustomMovementMode != WallRunning)
 	{
@@ -637,9 +647,9 @@ void UBetterCharacterMovementComponent::StopWallRun(float CoolDown)
 bool UBetterCharacterMovementComponent::CanWallRun() const
 {
 	FHitResult Hit;
-	DrawDebugLine(GetWorld(), CharacterOwner->GetActorLocation(),
-	              CharacterOwner->GetActorLocation() + FVector(
-		              0, 0, -MinWallRunJumpHeight), FColor::Emerald);
+	// DrawDebugLine(GetWorld(), CharacterOwner->GetActorLocation(),
+	//               CharacterOwner->GetActorLocation() + FVector(
+	// 	              0, 0, -MinWallRunJumpHeight), FColor::Emerald);
 	return bCanWallRun && !GetWorld()->LineTraceSingleByChannel(
 		Hit, CharacterOwner->GetActorLocation(),
 		CharacterOwner->GetActorLocation() + FVector(
@@ -662,7 +672,7 @@ bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& b
 			HitResult, Start, Start + Direction * TraceDistance, ECC_Visibility, QueryParams
 		);
 
-		DrawDebugLine(GetWorld(), Start, Start + Direction * TraceDistance, FColor::Blue, false, 0.1f);
+		// DrawDebugLine(GetWorld(), Start, Start + Direction * TraceDistance, FColor::Blue, false, 0.1f);
 
 		if (!bHit)
 		{
@@ -671,10 +681,10 @@ bool UBetterCharacterMovementComponent::FindWall(FVector& OutWallNormal, bool& b
 				Start - FVector(0, 0, 70),
 				Start - FVector(0, 0, 70) + Direction * TraceDistance, ECC_Visibility, QueryParams
 			);
-			DrawDebugLine(
-				GetWorld(),
-				Start - FVector(0, 0, 70),
-				Start - FVector(0, 0, 70) + Direction * TraceDistance, FColor::Blue, false, 0.1f);
+			// DrawDebugLine(
+			// 	GetWorld(),
+			// 	Start - FVector(0, 0, 70),
+			// 	Start - FVector(0, 0, 70) + Direction * TraceDistance, FColor::Blue, false, 0.1f);
 			if (bBottomHit && HitResult.GetActor() && HitResult.GetActor()->ActorHasTag("WallRunnable") &&
 				FMath::Abs(FVector::DotProduct(HitResult.Normal, FVector::UpVector)) < 0.5f)
 			{
