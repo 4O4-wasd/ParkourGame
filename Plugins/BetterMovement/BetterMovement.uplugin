@@ -1,24 +1,24 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "BetterMovement",
-	"Description": "HAHA MOVEMENT GO BRRRRRRRRRRRRRRR!",
-	"Category": "Other",
-	"CreatedBy": "yuvraj404",
-	"CreatedByURL": "",
-	"DocsURL": "",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "BetterMovement",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "BetterMovement",
+  "Description": "HAHA MOVEMENT GO BRRRRRRRRRRRRRRR!",
+  "Category": "Other",
+  "CreatedBy": "4O4",
+  "CreatedByURL": "",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "BetterMovement",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
 }

@@ -90,11 +90,6 @@ void UBetterCharacterMovementComponent::TickComponent(const float DeltaTime, con
 	{
 		JumpZVelocity = 700;
 	}
-	PRINT_TO_SCREEN(FString::Printf(TEXT("Input X: %f, Y: %f"), MovementInput.X, MovementInput.Y), 0.0f,
-	                FColor::Orange);
-	PRINT_TO_SCREEN(FString::Printf(TEXT("Velocity X: %f, Y: %f, Z: %f"), Velocity.X, Velocity.Y, Velocity.Z), 0.0f,
-	                FColor::Orange);
-	PRINT_TO_SCREEN(FString::Printf(TEXT("Velocity Size: %f"), Velocity.Length()), 0.0f, FColor::Green);
 }
 
 void UBetterCharacterMovementComponent::BeginPlay()
@@ -154,8 +149,13 @@ bool UBetterCharacterMovementComponent::CanSprint() const
 
 bool UBetterCharacterMovementComponent::CanVault(FVector& EndingLocation) const
 {
-	if (CurrentCustomMovementMode == Vaulting || CurrentCustomMovementMode == Walking || CurrentCustomMovementMode ==
+	if (CurrentCustomMovementMode == Vaulting || CurrentCustomMovementMode ==
 		WallRunning)
+	{
+		return false;
+	}
+
+	if (Velocity.Size() < 1000)
 	{
 		return false;
 	}
@@ -258,6 +258,10 @@ void UBetterCharacterMovementComponent::Vault()
 
 void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovementMode NewMovementMode)
 {
+	if (!IsCustomMovementModeEnabled(NewMovementMode))
+	{
+		return;
+	}
 	if (CurrentCustomMovementMode == NewMovementMode)
 	{
 		return;
@@ -297,6 +301,29 @@ void UBetterCharacterMovementComponent::SetCustomMovementMode(const ECustomMovem
 		PRINT_TO_SCREEN(FString::Printf(TEXT("UMM... THINK IT's A WRONG MOVEMENT")), 1000.f, FColor::Purple);
 		break;
 	}
+}
+
+bool UBetterCharacterMovementComponent::IsCustomMovementModeEnabled(const ECustomMovementMode TheMovementMode) const
+{
+	switch (TheMovementMode)
+	{
+	case Walking:
+		return true;
+	case Sprinting:
+		return MovementEnabledSettings.Sprint;
+	case Crouching:
+		return MovementEnabledSettings.Crouch;
+	case Sliding:
+		return MovementEnabledSettings.Slide;
+	case Dashing:
+		return MovementEnabledSettings.Dash;
+	case Vaulting:
+		return MovementEnabledSettings.Vault;
+	case WallRunning:
+		return MovementEnabledSettings.WallRun;
+	}
+
+	return false;
 }
 
 void UBetterCharacterMovementComponent::OnCustomMovementModeChanged(const ECustomMovementMode PrevMovementMode)
@@ -392,10 +419,10 @@ void UBetterCharacterMovementComponent::Dash()
 		ResolveMovement();
 		return;
 	}
-	CharacterOwner->LaunchCharacter(Velocity * FVector(1, 1, 0) * DashSpeedMultiple, false, false);
+	Velocity += (Velocity * FVector(1, 1, 0) * DashSpeedMultiple);
 	bCanDash = false;
 	FTimerHandle _;
-	GetWorld()->GetTimerManager().SetTimer(_, [&]()
+	GetWorld()->GetTimerManager().SetTimer(DashTimerHandler, [&]()
 	{
 		bCanDash = true;
 	}, DashCooldownTime, false);
@@ -639,9 +666,6 @@ void UBetterCharacterMovementComponent::StopWallRun(const float CoolDown)
 	{
 		bCanWallRun = true;
 	}, CoolDown, false);
-	PRINT_TO_SCREEN(FString::Printf(TEXT("Wall run stopped")), 100.0f,
-	                FColor::Orange);
-	UE_LOG(LogTemp, Log, TEXT("Wall Run Stopped"));
 }
 
 bool UBetterCharacterMovementComponent::CanWallRun() const

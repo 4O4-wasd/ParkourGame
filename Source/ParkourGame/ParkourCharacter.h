@@ -110,7 +110,7 @@ class PARKOURGAME_API AParkourCharacter : public ACharacter
 	UInputAction* EquipAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* UnequipAction;
+	UInputAction* UnEquipAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AttackAction;
@@ -130,19 +130,14 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintCallable)
-	void CalculateCameraRotation(class AWeaponActor* Weapon);
-
-	void MovingForward();
-	void OnWall();
-	void ConsumeJump();
-
 	void JumpVault();
 
 	void Move(const FInputActionValue& Value);
 	void StopMove();
 
 	void Look(const FInputActionValue& Value);
+
+	void WeaponsSway();
 
 public:
 	// Called every frame
@@ -152,37 +147,23 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapons, meta = (AllowPrivateAccess = "true"))
-	TArray<AWeaponActor*> Weapons;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sway, meta = (AllowPrivateAccess = "true"))
+	float MaxSwayDegree = 5;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapons, meta = (AllowPrivateAccess = "true"))
-	AWeaponActor* CurrentWeapon;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sway, meta = (AllowPrivateAccess = "true"))
+	float SwayDegree = 2.5;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	int32 CurrentWeaponIndex;
+	FVector2D MoveVector;
+	FVector2D LookVector;
 
-	// WallRun
+	FVector InitialWeaponPosition; // Initial position of the weapon mesh
+	FRotator InitialWeaponRotation; // Initial rotation of the weapon mesh
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	FVector WallRunDirection;
+	FVector WeaponOffset; // Current weapon offset
+	FVector LastVelocity; // Last velocity of the character
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	bool IsWallRunning;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	int JumpLeft;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	int MaxJumps = 2;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	float RightAxis;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	float ForwardAxis;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = WallRun, meta = (AllowPrivateAccess = "true"))
-	TEnumAsByte<EWallRunSide> WallRunSide;
+	float BobbingSpeed = 5.f; // Speed of the bobbing
+	float BobbingAmount = 10.f; // Amount of bobbing
 
 protected:
 	FTimerHandle FireTimerHandle;
@@ -191,11 +172,9 @@ protected:
 	UBetterCharacterMovementComponent* BetterCharacterMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
-	UWeaponControllerComponent* WeaponController;
+	class UWeaponController* WeaponController;
 
 public:
-	FORCEINLINE auto GetWeaponSway() const { WeaponSway; }
-	FORCEINLINE auto GetCurrentWeapon() const { return CurrentWeapon; }
 	FORCEINLINE void ChangeCameraLag(const bool bIsEnabled) const { CameraBoom->bEnableCameraLag = bIsEnabled; }
 	FORCEINLINE auto GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE auto GetBetterCharacterMovement() const { return BetterCharacterMovement; }

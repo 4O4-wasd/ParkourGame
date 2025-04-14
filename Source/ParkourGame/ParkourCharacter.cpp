@@ -11,7 +11,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "WeaponControllerComponent.h"
+#include "MyUtils.h"
+#include "WeaponController.h"
+#include "Kismet/KismetMathLibrary.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -21,7 +23,7 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 		ACharacter::CharacterMovementComponentName))
 {
 	BetterCharacterMovement = Cast<UBetterCharacterMovementComponent>(GetCharacterMovement());
-	WeaponController = CreateDefaultSubobject<UWeaponControllerComponent>(TEXT("Weapon Controller Component"));
+	WeaponController = CreateDefaultSubobject<UWeaponController>(TEXT("Weapon Controller"));
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -84,6 +86,8 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 
 	WeaponSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
 	WeaponSkeletalMesh->SetupAttachment(GetMesh(), FName("WeaponSocket"));
+
+	WeaponController->InitializeValues(FollowCamera, WeaponHolder, SecondWeaponHolder);
 }
 
 // Called when the game starts or when spawned
@@ -99,33 +103,18 @@ void AParkourCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-
-	WeaponController->InitializeValues(FollowCamera, WeaponHolder, SecondWeaponHolder);
 }
 
-void AParkourCharacter::CalculateCameraRotation(AWeaponActor* Weapon)
-{
-	if (!Weapon)
-	{
-		return;
-	}
-
-	const auto ReverseTargetRotation =
-		FRotator(-TargetCameraRotation.Pitch, -TargetCameraRotation.Yaw, -TargetCameraRotation.Roll);
-	TargetCameraRotation = FMath::RInterpTo(TargetCameraRotation, FRotator::ZeroRotator, GetWorld()->GetDeltaSeconds(),
-	                                        Weapon->GetRecoilReturnSpeed());
-	CurrentCameraRotation = FMath::RInterpTo(CurrentCameraRotation, TargetCameraRotation, GetWorld()->GetDeltaSeconds(),
-	                                         Weapon->GetRecoilSnappiness());
-
-	if (FollowCamera)
-	{
-		FollowCamera->SetRelativeRotation(CurrentCameraRotation);
-	}
-}
-
-void AParkourCharacter::Tick(float DeltaTime)
+void AParkourCharacter::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (!WeaponController)
+	{
+		UMyUtils::PrintToScreen(FString("WeaponController is not valid"));
+	}
+
+	WeaponsSway();
 
 	// CurrentWeapon = Weapons[CurrentWeaponIndex];
 	// SetWeaponVisibilty();
@@ -180,12 +169,14 @@ void AParkourCharacter::Move(const FInputActionValue& Value)
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 		BetterCharacterMovement->SetMovementInput(MovementVector);
+		MoveVector = MovementVector;
 	}
 }
 
 void AParkourCharacter::StopMove()
 {
 	BetterCharacterMovement->SetMovementInput(FVector2d::Zero());
+	MoveVector = FVector2D::Zero();
 }
 
 void AParkourCharacter::Look(const FInputActionValue& Value)
@@ -198,7 +189,37 @@ void AParkourCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+		LookVector = LookAxisVector;
 	}
+}
+
+void AParkourCharacter::WeaponsSway()
+{
+	constexpr auto InitRotation = FRotator();
+
+	const auto FinalRotation = FRotator(
+		LookVector.X * SwayDegree,
+		LookVector.Y * SwayDegree,
+		LookVector.Y * SwayDegree
+	);
+
+	const auto NewRotation = UKismetMathLibrary::RInterpTo(
+		WeaponSway->GetRelativeRotation(),
+		FRotator(
+			InitRotation.Pitch - FinalRotation.Pitch,
+			InitRotation.Yaw - FinalRotation.Yaw,
+			InitRotation.Roll + FinalRotation.Roll
+		),
+		GetWorld()->GetDeltaSeconds(),
+		2.5
+	);
+	WeaponSway->SetRelativeRotation(
+		FRotator(
+			UKismetMathLibrary::FClamp(NewRotation.Pitch, -MaxSwayDegree, MaxSwayDegree),
+			UKismetMathLibrary::FClamp(NewRotation.Yaw, -MaxSwayDegree, MaxSwayDegree),
+			UKismetMathLibrary::FClamp(NewRotation.Roll, -MaxSwayDegree, MaxSwayDegree)
+		)
+	);
 }
 
 // Called to bind functionality to input
@@ -208,7 +229,7 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AParkourCharacter::JumpVault);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Ongoing, this, &AParkourCharacter::JumpVault);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -219,37 +240,89 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AParkourCharacter::Look);
 
 		// Sprinting
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, BetterCharacterMovement,
-		                                   &UBetterCharacterMovementComponent::SprintPressed);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, BetterCharacterMovement,
-		                                   &UBetterCharacterMovementComponent::SprintReleased);
+		EnhancedInputComponent->BindAction(
+			SprintAction,
+			ETriggerEvent::Started, BetterCharacterMovement,
+			&UBetterCharacterMovementComponent::SprintPressed
+		);
+		EnhancedInputComponent->BindAction(
+			SprintAction,
+			ETriggerEvent::Completed,
+			BetterCharacterMovement,
+			&UBetterCharacterMovementComponent::SprintReleased
+		);
 
 		// Crouching
-		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, BetterCharacterMovement,
-		                                   &UBetterCharacterMovementComponent::CrouchPressed);
-		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, BetterCharacterMovement,
-		                                   &UBetterCharacterMovementComponent::CrouchReleased);
+		EnhancedInputComponent->BindAction(
+			CrouchAction,
+			ETriggerEvent::Started,
+			BetterCharacterMovement,
+			&UBetterCharacterMovementComponent::CrouchPressed
+		);
+		EnhancedInputComponent->BindAction(
+			CrouchAction,
+			ETriggerEvent::Completed,
+			BetterCharacterMovement,
+			&UBetterCharacterMovementComponent::CrouchReleased
+		);
 
 		// Dashing
-		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, BetterCharacterMovement,
-		                                   &UBetterCharacterMovementComponent::DashPressed);
+		EnhancedInputComponent->BindAction(
+			DashAction,
+			ETriggerEvent::Started,
+			BetterCharacterMovement,
+			&UBetterCharacterMovementComponent::DashPressed
+		);
+
+		EnhancedInputComponent->BindAction(
+			EquipAction,
+			ETriggerEvent::Started,
+			WeaponController,
+			&UWeaponController::PickUpAPickup
+		);
+
+		EnhancedInputComponent->BindAction(
+			UnEquipAction,
+			ETriggerEvent::Started,
+			WeaponController,
+			&UWeaponController::DropCurrentItem
+		);
 
 		// Firing
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, WeaponController,
-		                                   &UWeaponControllerComponent::FirePressed);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, WeaponController,
-		                                   &UWeaponControllerComponent::FireReleased);
+		EnhancedInputComponent->BindAction(
+			AttackAction,
+			ETriggerEvent::Started,
+			WeaponController,
+			&UWeaponController::AttackPressed
+		);
+		EnhancedInputComponent->BindAction(
+			AttackAction,
+			ETriggerEvent::Completed,
+			WeaponController,
+			&UWeaponController::AttackReleased
+		);
 
-		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Started, WeaponController,
-		                                   &UWeaponControllerComponent::SecondFirePressed);
-		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Completed, WeaponController,
-		                                   &UWeaponControllerComponent::SecondFireReleased);
+		EnhancedInputComponent->BindAction(
+			SecondAttackAction,
+			ETriggerEvent::Started,
+			WeaponController,
+			&UWeaponController::SecondAttackPressed
+		);
+		EnhancedInputComponent->BindAction(
+			SecondAttackAction,
+			ETriggerEvent::Completed,
+			WeaponController,
+			&UWeaponController::SecondAttackReleased
+		);
 	}
 	else
 	{
-		UE_LOG(LogTemplateCharacter, Error,
-		       TEXT(
-			       "'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."
-		       ), *GetNameSafe(this));
+		UE_LOG(
+			LogTemplateCharacter,
+			Error,
+			TEXT(
+				"'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."
+			), *GetNameSafe(this)
+		);
 	}
 }

@@ -65,6 +65,30 @@ struct FMovementSetting
 	float MaxSlideSpeed;
 };
 
+USTRUCT(BlueprintType)
+struct FMovementEnabledSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Sprint = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Crouch = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Slide = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Vault = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool WallRun = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Dash = true;
+};
+
 UCLASS(ClassGroup=(BetterMovement), meta=(BlueprintSpawnableComponent))
 class BETTERMOVEMENT_API UBetterCharacterMovementComponent : public UCharacterMovementComponent
 {
@@ -157,6 +181,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetCustomMovementMode(ECustomMovementMode NewMovementMode);
 
+	UFUNCTION(BlueprintCallable)
+	bool IsCustomMovementModeEnabled(ECustomMovementMode TheMovementMode) const;
+
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	FMovementSetting MovementSetting = {
@@ -189,6 +216,9 @@ private:
 	};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
+	FMovementEnabledSettings MovementEnabledSettings;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	float SlideCameraTilt = 7;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
@@ -202,6 +232,8 @@ private:
 	FTimerHandle SlideTimerHandler;
 
 	FTimerHandle EndCrouchTimerHandler;
+
+	FTimerHandle DashTimerHandler;
 
 	FVector JumpTargetLocation;
 	// FTimerHandle SwingTimerHandler;
