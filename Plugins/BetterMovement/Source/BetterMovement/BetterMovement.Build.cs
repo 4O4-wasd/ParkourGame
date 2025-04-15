@@ -42,7 +42,6 @@ public class BetterMovement : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"ParkourGame",
 				"CableComponent"
 				// ... add private dependencies that you statically link with here ...	
 			}

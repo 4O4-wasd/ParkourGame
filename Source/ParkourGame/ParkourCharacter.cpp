@@ -4,7 +4,6 @@
 
 #include "BetterCharacterMovementComponent.h"
 #include "TimerManager.h"
-#include "WeaponActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
