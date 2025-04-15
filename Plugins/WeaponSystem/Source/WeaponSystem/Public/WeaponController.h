@@ -124,6 +124,7 @@ public:
 
 	FORCEINLINE auto GetCurrentWeapon() const { return CurrentItem; }
 	FORCEINLINE auto GetSecondCurrentWeapon() const { return SecondCurrentItem; }
+	FORCEINLINE auto GetFollowCamera() const { return FollowCamera; }
 
 #pragma endregion Variables
 };

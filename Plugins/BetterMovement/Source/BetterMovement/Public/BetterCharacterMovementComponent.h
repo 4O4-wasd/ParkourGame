@@ -6,6 +6,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "BetterCharacterMovementComponent.generated.h"
 
+#pragma region Enums
+
 UENUM(BlueprintType)
 enum ECustomMovementMode
 {
@@ -26,6 +28,10 @@ enum ECustomMovementWallRunSide
 	WallRunRight UMETA(DisplayName = "Right"),
 };
 
+#pragma endregion Enums
+
+#pragma region Structs
+
 USTRUCT(BlueprintType)
 struct FMovementTypeSetting
 {
@@ -38,7 +44,49 @@ struct FMovementTypeSetting
 	float Acceleration;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Deceleration = 2600;
+	float Deceleration;
+};
+
+USTRUCT()
+struct FSlideFMovementTypeSetting : public FMovementTypeSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float MaxSlideSpeed = 3000;
+};
+
+USTRUCT()
+struct FWallRunFMovementTypeSetting : public FMovementTypeSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float MinRunHeight = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float GravityScale = .5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float JumpStrength = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float JumpUpStrength = 800.f;
+};
+
+USTRUCT()
+struct FDashMovementTypeSetting : public FMovementTypeSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float Distance = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float CooldownTime = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float Time = .2f;
 };
 
 USTRUCT(BlueprintType)
@@ -47,22 +95,22 @@ struct FMovementSetting
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting Walk;
+	FMovementTypeSetting Walk = {600, 2500, 2000};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting Sprint;
+	FMovementTypeSetting Sprint = {1000, 2800, 2300};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting Crouch;
+	FMovementTypeSetting Crouch = {550, 2500, 1800};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting Slide;
+	FSlideFMovementTypeSetting Slide = {500, 5000, 700};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FMovementTypeSetting WallRun;
+	FWallRunFMovementTypeSetting WallRun = {1000, 2800, 2300};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MaxSlideSpeed;
+	FDashMovementTypeSetting Dash = {0, 2500, 2000};
 };
 
 USTRUCT(BlueprintType)
@@ -89,67 +137,17 @@ struct FMovementEnabledSettings
 	bool Dash = true;
 };
 
-UCLASS(ClassGroup=(BetterMovement), meta=(BlueprintSpawnableComponent))
+#pragma endregion Structs
+
+UCLASS(ClassGroup = (BetterMovement), meta = (BlueprintSpawnableComponent))
 class BETTERMOVEMENT_API UBetterCharacterMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
-	void SpeedControl();
-
-protected:
-	virtual void InitializeComponent() override;
-
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
-	virtual void BeginPlay() override;
-
-	virtual void CustomMovementUpdate();
-
-	bool CanStand() const;
-
-	bool CanSprint() const;
-
-	bool CanVaultToHit(const UCapsuleComponent* Capsule, const FHitResult& Hit, FVector& EndingLocation) const;
-
-	bool CheckCapsuleCollison(const FVector& Center, float HalfHeight, float Radius) const;
-
-	void OnCustomMovementModeChanged(ECustomMovementMode PrevMovementMode);
-
-	void ResolveMovement();
-
-	void CameraTilt() const;
-
-	virtual void BeginCrouch();
-
-	virtual void EndCrouch();
-
-	virtual void Dash();
-
-	virtual FVector CalculateFloorInfluence(FVector FloorNormal);
-
-	virtual void BeginSlide();
-
-	virtual void EndSlide();
-
-	void ResetWallTimer(float ResetTime);
-
-	virtual void SlideUpdate();
-
-	virtual void VaultUpdate();
-
-	void StartWallRun(const FVector& WallNormal, bool bIsRightSide);
-	void UpdateWallRun();
-
-	// Helper functions to detect walls
-	bool CanWallRun() const;
-	bool FindWall(FVector& OutWallNormal, bool& bIsRightSide) const;
-
-	virtual void DiagonalMove();
-
-	FMovementTypeSetting GetCustomMovementSetting(ECustomMovementMode CustomMovement) const;
 
 public:
 	UBetterCharacterMovementComponent();
+
+#pragma region Public Functions
 
 	UFUNCTION(BlueprintCallable)
 	void SprintPressed();
@@ -184,36 +182,70 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsCustomMovementModeEnabled(ECustomMovementMode TheMovementMode) const;
 
+	// Getters / Setters
+	FORCEINLINE void SetMovementInput(FVector2D NewInput) { MovementInput = NewInput; }
+	FORCEINLINE auto GetCurrentCustomMovementMode() const { return CurrentCustomMovementMode; }
+
+#pragma endregion Public Functions
+
+protected:
+#pragma region Lifecycle
+
+	virtual void InitializeComponent() override;
+
+	virtual void BeginPlay() override;
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
+	                           FActorComponentTickFunction* ThisTickFunction) override;
+
+#pragma endregion Lifecycle
+
+#pragma region Movement Logic
+
+	virtual void CustomMovementUpdate();
+	void SpeedControl();
+	void ResolveMovement();
+	void CameraTilt() const;
+
+	bool CanStand() const;
+	bool CanSprint() const;
+
+	virtual void BeginCrouch();
+	virtual void EndCrouch();
+
+	virtual void Dash();
+	virtual void DashUpdate();
+
+	virtual void BeginSlide();
+	virtual void EndSlide();
+	virtual void SlideUpdate();
+
+	virtual void VaultUpdate();
+
+	void StartWallRun(const FVector& WallNormal, bool bIsRightSide);
+	void UpdateWallRun();
+
+	virtual void DiagonalMove();
+	static FVector CalculateFloorInfluence(const FVector& FloorNormal);
+	void OnCustomMovementModeChanged(ECustomMovementMode PrevMovementMode);
+
+	bool CanWallRun() const;
+	bool CanFindAWall(FVector& OutWallNormal, bool& bIsRightSide) const;
+
+	void ResetWallTimer(float ResetTime);
+
+	bool CanVaultToHit(const UCapsuleComponent* Capsule, const FHitResult& Hit, FVector& EndingLocation) const;
+	bool CheckCapsuleCollision(const FVector& Center, float HalfHeight, float Radius) const;
+
+	FMovementTypeSetting GetCustomMovementSetting(ECustomMovementMode CustomMovement) const;
+
+#pragma endregion Movement Logic
+
+#pragma region Private Variables
+
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
-	FMovementSetting MovementSetting = {
-		{
-			600,
-			2500,
-			2000
-		},
-		{
-			1000,
-			2800,
-			2300
-		},
-		{
-			550,
-			2500,
-			1800
-		},
-		{
-			500,
-			5000,
-			700
-		},
-		{
-			0,
-			2500,
-			2000
-		},
-		7000
-	};
+	FMovementSetting MovementSetting;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	FMovementEnabledSettings MovementEnabledSettings;
@@ -227,77 +259,46 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	float WallRunCameraTilt = 10;
 
-	float StandingCapsuleHalfHeight;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
+	bool AutoSprint;
 
-	FTimerHandle SlideTimerHandler;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run", meta = (AllowPrivateAccess = "true"))
+	float WallRunCooldownTime = 0.5f;
 
-	FTimerHandle EndCrouchTimerHandler;
+#pragma endregion Private Variables
 
-	FTimerHandle DashTimerHandler;
-
-	FVector JumpTargetLocation;
-	// FTimerHandle SwingTimerHandler;
-
-	FVector StartingVaultLocation;
-	FVector EndingVaultLocation;
+#pragma region State Variables
 
 protected:
 	bool bIsSprintKeyDown = false;
 	bool bIsCrouchKeyDown = false;
+	bool bCanWallRun = true;
+	bool bCanDash = true;
+	bool IsExitingWall;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	FVector2D MovementInput;
-	bool IsExitingWall;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Custom Movement", meta = (AllowPrivateAccess = "true"))
 	TEnumAsByte<ECustomMovementMode> CurrentCustomMovementMode;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Custom Movement")
-	bool AutoSprint;
-
-	// The wall normal of the current wall run surface
 	FVector CurrentWallNormal;
-
-	// Timer to track wall run duration (if needed)
 	float WallRunDuration = 0.f;
+	float VaultProgress = .0f;
+	float DashProgress = .0f;
 
-	// Configurable wall run parameters
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	float WallRunSpeed = 850.f;
+	float StandingCapsuleHalfHeight;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	float MinWallRunJumpHeight = 100.f;
+	FTimerHandle SlideTimerHandler;
+	FTimerHandle EndCrouchTimerHandler;
+	FTimerHandle DashTimerHandler;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	float WallRunGravityScale = .2f;
+	FVector JumpTargetLocation;
+	FVector StartingVaultLocation;
+	FVector EndingVaultLocation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Jump")
-	float WallJumpStrength = 800.f;
+	FVector StartingDashLocation;
+	FVector EndingDashLocation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Jump")
-	float WallUpJumpStrength = 800.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
-	float DashSpeedMultiple = 4.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
-	float DashCooldownTime = 10.f;
-
-	bool bCanWallRun = true;
-
-	bool bCanDash = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	float WallRunCooldownTime = 0.5f;
-
-	float VaultProgress;
-
-public:
-	//Getters / Setters
-	FORCEINLINE void SetMovementInput(FVector2D NewInput)
-	{
-		MovementInput = NewInput;
-	}
-
-	FORCEINLINE auto GetCurrentCustomMovementMode() const { return CurrentCustomMovementMode; }
+#pragma endregion State Variables
 };
