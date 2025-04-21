@@ -9,6 +9,8 @@
 #include "TimerManager.h"
 #include "NiagaraFunctionLibrary.h"
 #include "WeaponController.h"
+#include "Components/TimelineComponent.h"
+#include "Curves/CurveVector.h"
 #include "GameFramework/Character.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
@@ -37,35 +39,60 @@ ARangeWeapon::ARangeWeapon():
 	ShellEjectSystem(nullptr),
 	ImpactPointSystem(nullptr),
 	BulletTraceSystem(nullptr),
+	bIsReloading(false),
+	CurrentAmmo(0),
 	CurrentCameraRotation(),
 	TargetCameraRotation(),
 	CurrentRelativeLocation(),
 	TargetRelativeLocation(),
 	CurrentRelativeRotation(),
-	TargetRelativeRotation(),
-	bIsReloading(false),
-	CurrentAmmo(0)
+	TargetRelativeRotation()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	FireMuzzleSocketName = FString("Muzzle");
 	ShellEjectSocketName = FString("ShellEject");
-}
 
-void ARangeWeapon::AttackButtonPressed_Implementation()
-{
-	FireWeapon(true);
-}
+	PushbackRecoilTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("RecoilTimelineComponent"));
+	RotationRecoilTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(
+		TEXT("RotationRecoilTimelineComponent"));
 
-void ARangeWeapon::AttackButtonReleased_Implementation()
-{
-	FireWeapon(false);
+	BaseRelativeLocation = WeaponDefaultRelativeLocation;
+	BaseRelativeRotation = VectorToRotator(WeaponDefaultRelativeRotation);
 }
 
 void ARangeWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentAmmo = DefaultMagazineSize;
+
+	PushbackRecoilTimelineComponent->SetLooping(false);
+	FOnTimelineVector PushbackRecoilTimelineVector;
+	PushbackRecoilTimelineVector.BindUFunction(this, "PushbackRecoil");
+	PushbackRecoilTimelineComponent->AddInterpVector(PushbackRecoilCurve, PushbackRecoilTimelineVector);
+	PushbackRecoilTimelineComponent->SetTimelineLengthMode(TL_LastKeyFrame);
+
+	RotationRecoilTimelineComponent->SetLooping(false);
+	FOnTimelineVector RotationRecoilTimelineVector;
+	RotationRecoilTimelineVector.BindUFunction(this, "RotationRecoil");
+	RotationRecoilTimelineComponent->AddInterpVector(RotationRecoilCurve, RotationRecoilTimelineVector);
+	RotationRecoilTimelineComponent->SetTimelineLengthMode(TL_LastKeyFrame);
+
+	FOnTimelineEvent RecoilFinishedEvent;
+	RecoilFinishedEvent.BindUFunction(this, "RecoilTimelineFinished");
+	PushbackRecoilTimelineComponent->SetTimelineFinishedFunc(RecoilFinishedEvent);
+	RotationRecoilTimelineComponent->SetTimelineFinishedFunc(RecoilFinishedEvent);
+}
+
+
+void ARangeWeapon::AttackButtonPressed_Implementation()
+{
+	StartFiring(true);
+}
+
+void ARangeWeapon::AttackButtonReleased_Implementation()
+{
+	StartFiring(false);
 }
 
 void ARangeWeapon::Tick(const float DeltaSeconds)
@@ -88,29 +115,103 @@ void ARangeWeapon::Tick(const float DeltaSeconds)
 					90 - CurrentCameraRotation.Pitch;
 			}
 
-			TargetRelativeLocation = FMath::VInterpTo(TargetRelativeLocation,
-			                                          (WeaponController->GetSecondCurrentWeapon() == this)
-				                                          ? WeaponDefaultRelativeLocation * FVector(-1, 1, 1)
-				                                          : WeaponDefaultRelativeLocation,
-			                                          GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
-			CurrentRelativeLocation = FMath::VInterpTo(CurrentRelativeLocation, TargetRelativeLocation,
-			                                           GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
-			SetActorRelativeLocation(CurrentRelativeLocation);
+			TargetRelativeLocation = FMath::VInterpTo(
+				TargetRelativeLocation,
+				(WeaponController->GetSecondCurrentWeapon() == this)
+					? WeaponDefaultRelativeLocation * FVector(-1, 1, 1)
+					: WeaponDefaultRelativeLocation,
+				GetWorld()->GetDeltaSeconds(),
+				RecoilReturnSpeed
+			);
 
-			TargetRelativeRotation = FMath::RInterpTo(TargetRelativeRotation,
-			                                          VectorToRotator(
-				                                          (WeaponController->GetSecondCurrentWeapon() == this)
-					                                          ? WeaponDefaultRelativeRotation * FVector(-1, 1, 1)
-					                                          : WeaponDefaultRelativeRotation),
-			                                          GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
-			CurrentRelativeRotation = FMath::RInterpTo(CurrentRelativeRotation, TargetRelativeRotation,
-			                                           GetWorld()->GetDeltaSeconds(), RecoilSnappiness);
-			SetActorRelativeRotation(CurrentRelativeRotation);
+			CurrentRelativeLocation = FMath::VInterpTo(
+				CurrentRelativeLocation,
+				TargetRelativeLocation,
+				GetWorld()->GetDeltaSeconds(),
+				RecoilSnappiness
+			);
+
+			TargetRelativeRotation = FMath::RInterpTo(
+				TargetRelativeRotation,
+				VectorToRotator(
+					(WeaponController->GetSecondCurrentWeapon() == this)
+						? WeaponDefaultRelativeRotation * FVector(-1, 1, 1)
+						: WeaponDefaultRelativeRotation
+				),
+				GetWorld()->GetDeltaSeconds(),
+				RecoilReturnSpeed
+			);
+
+			CurrentRelativeRotation = FMath::RInterpTo(
+				CurrentRelativeRotation,
+				TargetRelativeRotation,
+				GetWorld()->GetDeltaSeconds(),
+				RecoilSnappiness
+			);
+
+			// BaseRelativeLocation = FMath::VInterpTo(
+			// 	BaseRelativeLocation,
+			// 	WeaponDefaultRelativeLocation, GetWorld()->GetDeltaSeconds(),
+			// 	10
+			// );
+			//
+			// BaseRelativeRotation = FMath::RInterpTo(
+			// 	BaseRelativeRotation,
+			// 	VectorToRotator(WeaponDefaultRelativeRotation), GetWorld()->GetDeltaSeconds(),
+			// 	10
+			// );
 		}
 	}
 }
 
-void ARangeWeapon::FireWeapon(const bool IsPressed)
+void ARangeWeapon::PushbackRecoil(const FVector OutVector)
+{
+	if (WeaponController)
+	{
+		if ((WeaponController->GetCurrentWeapon() == this) || (WeaponController->GetSecondCurrentWeapon() == this))
+		{
+			SetActorRelativeLocation(
+				OutVector + CurrentRelativeLocation,
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics
+			);
+			PRINT_TO_SCREEN(FString::Printf(TEXT("Hlo")), 0, FColor::Emerald);
+		}
+	}
+}
+
+void ARangeWeapon::RotationRecoil(const FVector OutVector)
+{
+	if (WeaponController)
+	{
+		if ((WeaponController->GetCurrentWeapon() == this) || (WeaponController->GetSecondCurrentWeapon() == this))
+		{
+			const auto NewOut = FVector(
+				FMath::RandRange(-OutVector.X, OutVector.X),
+				FMath::RandRange(OutVector.Y / 3, OutVector.Y),
+				FMath::RandRange(-OutVector.Z, OutVector.Z)
+			);
+			SetActorRelativeRotation(
+				FRotator(
+					(OutVector).Y,
+					(OutVector).Z,
+					(OutVector).X
+				) + CurrentRelativeRotation,
+				false,
+				nullptr,
+				ETeleportType::TeleportPhysics
+			);
+		}
+	}
+}
+
+void ARangeWeapon::RecoilTimelineFinished()
+{
+	PRINT_TO_SCREEN(FString::Printf(TEXT("Recoil Timeline finished")), 0, FColor::Orange);
+}
+
+void ARangeWeapon::StartFiring(const bool IsPressed)
 {
 	if (WeaponController)
 	{
@@ -119,27 +220,23 @@ void ARangeWeapon::FireWeapon(const bool IsPressed)
 		case Single:
 			if (!bIsReloading && IsPressed && bCanShoot)
 			{
-				OnWeaponFire();
+				Fire();
 				bCanShoot = false;
-				FTimerHandle UnusedTimerHandle;
-				GetWorld()->GetTimerManager().SetTimer(
-					UnusedTimerHandle, [&]
-					{
-						bCanShoot = true;
-					}, WeaponFireDelay, false);
+				ResetFire();
 			}
 			break;
 		case Automatic:
 			if (bCanShoot && !bIsReloading && IsPressed)
 			{
-				OnWeaponFire();
+				bIsShooting = true;
+				Fire();
 				bCanShoot = false;
 				if (!FireTimerHandle.IsValid())
 				{
 					GetWorld()->GetTimerManager().SetTimer(
 						FireTimerHandle, [&]
 						{
-							OnWeaponFire();
+							Fire();
 						},
 						WeaponFireDelay, true);
 				}
@@ -154,6 +251,7 @@ void ARangeWeapon::FireWeapon(const bool IsPressed)
 			{
 				ResetFire();
 			}
+			break;
 		default:
 			break;
 		}
@@ -162,35 +260,20 @@ void ARangeWeapon::FireWeapon(const bool IsPressed)
 
 void ARangeWeapon::Recoil()
 {
-	const auto NewRotation = FRotator(FMath::RandRange(WeaponCameraRecoil.Y / 3, WeaponCameraRecoil.Y),
-	                                  FMath::RandRange(-WeaponCameraRecoil.X, WeaponCameraRecoil.X),
-	                                  FMath::RandRange(-WeaponCameraRecoil.Z, WeaponCameraRecoil.Z));
-	if (WeaponController)
+	TargetRelativeLocation = RootComponent->GetRelativeLocation().GetClampedToSize(0, 40);
+	TargetRelativeRotation = ClampRotator(RootComponent->GetRelativeRotation(), -10, 10, -10, 10, -10, 10);
+	PushbackRecoilTimelineComponent->PlayFromStart();
+	RotationRecoilTimelineComponent->PlayFromStart();
+	if (WeaponController && WeaponController->GetFollowCamera())
 	{
-		// OwnerCharacter->WeaponCameraRecoil(NewRotation);
+		const auto NewRotation = FRotator(FMath::RandRange(WeaponCameraRecoil.Y / 3, WeaponCameraRecoil.Y),
+		                                  FMath::RandRange(-WeaponCameraRecoil.X, WeaponCameraRecoil.X),
+		                                  FMath::RandRange(-WeaponCameraRecoil.Z, WeaponCameraRecoil.Z));
 		TargetCameraRotation += NewRotation;
-	}
-
-	const auto NewRelativeLocation = FVector(FMath::RandRange(-WeaponPushbackRecoil.X, WeaponPushbackRecoil.X),
-	                                         FMath::RandRange(WeaponPushbackRecoil.Y / 3, WeaponPushbackRecoil.Y),
-	                                         FMath::RandRange(-WeaponPushbackRecoil.Z, WeaponPushbackRecoil.Z));
-
-	if (WeaponController)
-	{
-		TargetRelativeLocation += NewRelativeLocation;
-	}
-
-	const auto NewRelativeRotation = FRotator(FMath::RandRange(-WeaponRotationRecoil.Y, WeaponRotationRecoil.Y),
-	                                          FMath::RandRange(-WeaponRotationRecoil.X, WeaponRotationRecoil.X),
-	                                          FMath::RandRange(WeaponRotationRecoil.Z / 3, WeaponRotationRecoil.Z));
-	if (WeaponController)
-	{
-		// OwnerCharacter->WeaponCameraRecoil(NewRotation);
-		TargetRelativeRotation += NewRelativeRotation;
 	}
 }
 
-void ARangeWeapon::OnWeaponFire_Implementation()
+void ARangeWeapon::Fire()
 {
 	if (bIsReloading)
 	{
@@ -218,7 +301,6 @@ void ARangeWeapon::OnWeaponFire_Implementation()
 		return;
 	}
 
-	// FHitResult FireHitResult;
 	const FVector MuzzleSocketLocation = PlayerCamera->GetComponentLocation();
 
 	FCollisionQueryParams CollisionParams;
@@ -238,14 +320,6 @@ void ARangeWeapon::OnWeaponFire_Implementation()
 			                                               Mesh->GetSocketLocation(*FireMuzzleSocketName),
 			                                               (End - Mesh->GetSocketLocation(
 				                                               *FireMuzzleSocketName)).Rotation());
-			// GetWorld()->SpawnActor<AActor>(BulletTraceSystem, Mesh->GetSocketLocation(*FireMuzzleSocketName),
-			//                                (FireHitResult.ImpactPoint - Mesh->GetSocketLocation(
-			// 	                               *FireMuzzleSocketName)).Rotation(), FActorSpawnParameters());
-			// UNiagaraFunctionLibrary::SpawnSystemAttached(BulletTraceSystem, Mesh, NAME_None,
-			//                                              Mesh->GetSocketTransform(*FireMuzzleSocketName,
-			// 	                                                         RTS_Actor).
-			//                                                          GetLocation(), FRotator::ZeroRotator,
-			//                                              EAttachLocation::KeepRelativeOffset, true);
 		}
 		if (ImpactPointSystem && bDidHit)
 		{
@@ -295,7 +369,6 @@ void ARangeWeapon::OnWeaponFire_Implementation()
 			EAttachLocation::KeepRelativeOffset,
 			true
 		);
-		// UGameplayStatics::SpawnEmitterAttached(MuzzleFlash, Mesh, NAME_None, Mesh->GetSocketTransform(*FireMuzzleSocketName, RTS_World).GetLocation());
 	}
 
 	if (ShellEjectSystem)
@@ -315,9 +388,27 @@ void ARangeWeapon::OnWeaponFire_Implementation()
 
 void ARangeWeapon::ResetFire()
 {
-	if (FireTimerHandle.IsValid())
+	switch (FireModeType)
 	{
-		GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
+	case Single:
+		{
+			FTimerHandle UnusedTimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(
+				UnusedTimerHandle, [&]
+				{
+					bCanShoot = true;
+				}, WeaponFireDelay, false);
+			break;
+		}
+	case Automatic:
+		if (FireTimerHandle.IsValid())
+		{
+			bIsShooting = false;
+			GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
+		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -340,6 +431,13 @@ void ARangeWeapon::ReloadWeapon_Implementation()
 
 	if (!WeaponController)
 	{
+		return;
+	}
+
+	if (!ReloadAnimation)
+	{
+		bIsReloading = false;
+		CurrentAmmo = DefaultMagazineSize;
 		return;
 	}
 

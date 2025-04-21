@@ -6,8 +6,10 @@
 #include "Weapon.h"
 #include "RangeWeapon.generated.h"
 
+class UCurveVector;
 class UInputAction;
 class UNiagaraSystem;
+class UTimelineComponent;
 
 UENUM()
 enum EGunFireModeType
@@ -38,7 +40,7 @@ protected:
 	float MaxRandomSpreadAngle;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Fire Settings")
-	TEnumAsByte<EGunFireModeType> FireModeType;
+	TEnumAsByte<EGunFireModeType> FireModeType = Single;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Fire Settings")
 	float WeaponFireDelay;
@@ -51,6 +53,16 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Socket Names")
 	FString ShellEjectSocketName;
+
+	UTimelineComponent* PushbackRecoilTimelineComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Recoil")
+	UCurveVector* PushbackRecoilCurve;
+
+	UTimelineComponent* RotationRecoilTimelineComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Recoil")
+	UCurveVector* RotationRecoilCurve;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: Recoil")
 	FVector WeaponPushbackRecoil;
@@ -91,6 +103,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Range Weapon: VFX")
 	UNiagaraSystem* BulletTraceSystem;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
+	bool bIsReloading;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
+	bool bCanShoot = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
+	uint8 CurrentAmmo;
+
 private:
 	FRotator CurrentCameraRotation;
 
@@ -108,33 +129,40 @@ private:
 
 	FTimerHandle FireDelayTimerHandle;
 
+	FTimerHandle ResetWeaponTransformTimerHandle;
+
+	FVector BaseRelativeLocation;
+	FRotator BaseRelativeRotation;
+
+	bool bIsShooting = false;
+
 protected:
-	UFUNCTION(BlueprintCallable)
-	void Recoil();
-
-	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
-	bool bIsReloading;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
-	bool bCanShoot = true;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Range Weapon: Properties")
-	uint8 CurrentAmmo;
-
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnWeaponFire();
+	UFUNCTION()
+	void PushbackRecoil(const FVector OutVector);
 
-	virtual void OnWeaponFire_Implementation();
+	UFUNCTION()
+	void RotationRecoil(const FVector OutVector);
+
+	UFUNCTION()
+	void RecoilTimelineFinished();
+
+	void Recoil();
+
+	virtual void Fire();
 
 	virtual void OnWeaponUnEquip_Implementation() override;
 
-	void FireWeapon(bool IsPressed);
+	virtual void StartFiring(bool IsPressed);
 
 	virtual void ResetFire();
+
+	virtual void AttackButtonPressed_Implementation() override;
+
+	virtual void AttackButtonReleased_Implementation() override;
 
 public:
 	// Sets default values for this character's properties
@@ -154,10 +182,53 @@ public:
 		return Rotator;
 	}
 
-	virtual void AttackButtonPressed_Implementation() override;
-	virtual void AttackButtonReleased_Implementation() override;
+	static FRotator ClampRotator(const FRotator& Input, const float MinPitch, const float MaxPitch, const float MinYaw,
+	                             const float MaxYaw, const float MinRoll, const float MaxRoll)
+	{
+		FRotator Clamped = Input;
 
-public:
+		Clamped.Pitch = FMath::Clamp(Clamped.Pitch, MinPitch, MaxPitch);
+		Clamped.Yaw = FMath::Clamp(Clamped.Yaw, MinYaw, MaxYaw);
+		Clamped.Roll = FMath::Clamp(Clamped.Roll, MinRoll, MaxRoll);
+
+		Clamped.Normalize();
+
+		return Clamped;
+	}
+
+	static float FInterpWithCurve(const float Current, const float Target, const float DeltaTime, float& ElapsedTime,
+	                              const UCurveFloat* Curve)
+	{
+		if (!Curve)
+		{
+			// Fallback to basic interpolation
+			return FMath::FInterpTo(Current, Target, DeltaTime, 5.0f);
+		}
+		const auto a = UCurveFloat();
+
+
+		// Update elapsed time
+		ElapsedTime += DeltaTime;
+
+		// Get curve duration
+		float CurveDuration = 0.f;
+		const TArray<FRichCurveKey>& Keys = Curve->FloatCurve.GetConstRefOfKeys();
+		if (Keys.Num() > 0)
+		{
+			CurveDuration = Keys.Last().Time;
+		}
+
+		// Clamp elapsed time to curve duration
+		const float ClampedTime = FMath::Clamp(ElapsedTime, 0.f, CurveDuration);
+
+		// Get curve alpha (0–1 range)
+		const float Alpha = Curve->GetFloatValue(ClampedTime);
+
+		// Lerp using curve-shaped alpha
+		return FMath::Lerp(Current, Target, Alpha);
+	}
+
+
 	///////////////////////////////////////////////////////////
 
 	FORCEINLINE auto GetDamage() const { return Damage; }

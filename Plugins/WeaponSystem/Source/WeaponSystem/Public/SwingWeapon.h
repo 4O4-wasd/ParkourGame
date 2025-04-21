@@ -17,6 +17,9 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
+	UPROPERTY(BlueprintReadOnly, Category="Weapon Settings")
+	bool IsSwingWeapon;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Swing Weapon: Settings")
 	float WeaponRotationTime = 10.f;
 

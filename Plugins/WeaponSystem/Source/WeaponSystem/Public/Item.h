@@ -26,10 +26,10 @@ protected:
 
 	virtual void Interact_Implementation(UWeaponController* Controller);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pickup)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Pickup)
 	USkeletalMeshComponent* Mesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pickup)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Pickup)
 	class USphereComponent* ItemUpSphere;
 
 	UPROPERTY(BlueprintReadOnly, Category = Controller)
