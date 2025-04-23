@@ -47,9 +47,6 @@ class PARKOURGAME_API AParkourCharacter : public ACharacter
 	USceneComponent* WeaponParent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-	USceneComponent* WeaponFOV;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* WeaponSway;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
@@ -64,9 +61,6 @@ class PARKOURGAME_API AParkourCharacter : public ACharacter
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* SecondWeaponParent;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
-	USceneComponent* SecondWeaponFOV;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* SecondWeaponSway;

@@ -50,11 +50,8 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 	WeaponParent = CreateDefaultSubobject<USceneComponent>("Weapon Parent");
 	WeaponParent->SetupAttachment(FollowCamera);
 
-	WeaponFOV = CreateDefaultSubobject<USceneComponent>("Weapon FOV");
-	WeaponFOV->SetupAttachment(WeaponParent);
-
 	WeaponSway = CreateDefaultSubobject<USceneComponent>("Weapon Sway");
-	WeaponSway->SetupAttachment(WeaponFOV);
+	WeaponSway->SetupAttachment(WeaponParent);
 
 	WeaponEquip = CreateDefaultSubobject<USceneComponent>("Weapon Equip");
 	WeaponEquip->SetupAttachment(WeaponSway);
@@ -69,11 +66,8 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 	SecondWeaponParent = CreateDefaultSubobject<USceneComponent>("Second Weapon Parent");
 	SecondWeaponParent->SetupAttachment(FollowCamera);
 
-	SecondWeaponFOV = CreateDefaultSubobject<USceneComponent>("Second Weapon FOV");
-	SecondWeaponFOV->SetupAttachment(SecondWeaponParent);
-
 	SecondWeaponSway = CreateDefaultSubobject<USceneComponent>("Second Weapon Sway");
-	SecondWeaponSway->SetupAttachment(SecondWeaponFOV);
+	SecondWeaponSway->SetupAttachment(SecondWeaponParent);
 
 	SecondWeaponEquip = CreateDefaultSubobject<USceneComponent>("Second Weapon Equip");
 	SecondWeaponEquip->SetupAttachment(SecondWeaponSway);

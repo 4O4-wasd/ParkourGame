@@ -26,7 +26,7 @@ protected:
 
 	virtual void Interact_Implementation(UWeaponController* Controller);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Pickup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pickup)
 	USkeletalMeshComponent* Mesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Pickup)

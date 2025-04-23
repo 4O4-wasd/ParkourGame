@@ -142,10 +142,10 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION()
-	void PushbackRecoil(const FVector OutVector);
+	void PushbackRecoil(const FVector& OutVector);
 
 	UFUNCTION()
-	void RotationRecoil(const FVector OutVector);
+	void RotationRecoil(const FVector& OutVector);
 
 	UFUNCTION()
 	void RecoilTimelineFinished();
@@ -170,17 +170,6 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void ReloadWeapon();
-
-	static FRotator VectorToRotator(const FVector& Direction)
-	{
-		// Normalize the direction vector to ensure it's a unit vector
-		const FVector NormalizedDirection = Direction.GetSafeNormal();
-
-		// Convert the normalized direction vector to a rotator
-		const FRotator Rotator = NormalizedDirection.ToOrientationRotator();
-
-		return Rotator;
-	}
 
 	static FRotator ClampRotator(const FRotator& Input, const float MinPitch, const float MaxPitch, const float MinYaw,
 	                             const float MaxYaw, const float MinRoll, const float MaxRoll)

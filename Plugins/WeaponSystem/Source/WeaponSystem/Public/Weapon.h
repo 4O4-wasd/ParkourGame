@@ -32,6 +32,18 @@ public:
 
 	void EnableSettingsForThrowing() const;
 
+
+	static FRotator VectorToRotator(const FVector& Direction)
+	{
+		// Normalize the direction vector to ensure it's a unit vector
+		const FVector NormalizedDirection = Direction.GetSafeNormal();
+
+		// Convert the normalized direction vector to a rotator
+		const FRotator Rotator = NormalizedDirection.ToOrientationRotator();
+
+		return Rotator;
+	}
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

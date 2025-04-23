@@ -126,5 +126,8 @@ public:
 	FORCEINLINE auto GetSecondCurrentWeapon() const { return SecondCurrentItem; }
 	FORCEINLINE auto GetFollowCamera() const { return FollowCamera; }
 
+	FORCEINLINE auto GetWeaponHolder() const { return WeaponHolder; }
+	FORCEINLINE auto GetSecondWeaponHolder() const { return SecondWeaponHolder; }
+
 #pragma endregion Variables
 };

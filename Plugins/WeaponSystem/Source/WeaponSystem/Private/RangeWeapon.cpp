@@ -117,9 +117,7 @@ void ARangeWeapon::Tick(const float DeltaSeconds)
 
 			TargetRelativeLocation = FMath::VInterpTo(
 				TargetRelativeLocation,
-				(WeaponController->GetSecondCurrentWeapon() == this)
-					? WeaponDefaultRelativeLocation * FVector(-1, 1, 1)
-					: WeaponDefaultRelativeLocation,
+				FVector::ZeroVector,
 				GetWorld()->GetDeltaSeconds(),
 				RecoilReturnSpeed
 			);
@@ -133,11 +131,7 @@ void ARangeWeapon::Tick(const float DeltaSeconds)
 
 			TargetRelativeRotation = FMath::RInterpTo(
 				TargetRelativeRotation,
-				VectorToRotator(
-					(WeaponController->GetSecondCurrentWeapon() == this)
-						? WeaponDefaultRelativeRotation * FVector(-1, 1, 1)
-						: WeaponDefaultRelativeRotation
-				),
+				FRotator::ZeroRotator,
 				GetWorld()->GetDeltaSeconds(),
 				RecoilReturnSpeed
 			);
@@ -164,13 +158,13 @@ void ARangeWeapon::Tick(const float DeltaSeconds)
 	}
 }
 
-void ARangeWeapon::PushbackRecoil(const FVector OutVector)
+void ARangeWeapon::PushbackRecoil(const FVector& OutVector)
 {
 	if (WeaponController)
 	{
 		if ((WeaponController->GetCurrentWeapon() == this) || (WeaponController->GetSecondCurrentWeapon() == this))
 		{
-			SetActorRelativeLocation(
+			WeaponController->GetWeaponHolder()->SetRelativeLocation(
 				OutVector + CurrentRelativeLocation,
 				false,
 				nullptr,
@@ -181,7 +175,7 @@ void ARangeWeapon::PushbackRecoil(const FVector OutVector)
 	}
 }
 
-void ARangeWeapon::RotationRecoil(const FVector OutVector)
+void ARangeWeapon::RotationRecoil(const FVector& OutVector)
 {
 	if (WeaponController)
 	{
@@ -192,7 +186,7 @@ void ARangeWeapon::RotationRecoil(const FVector OutVector)
 				FMath::RandRange(OutVector.Y / 3, OutVector.Y),
 				FMath::RandRange(-OutVector.Z, OutVector.Z)
 			);
-			SetActorRelativeRotation(
+			WeaponController->GetWeaponHolder()->SetRelativeRotation(
 				FRotator(
 					(OutVector).Y,
 					(OutVector).Z,
@@ -260,8 +254,8 @@ void ARangeWeapon::StartFiring(const bool IsPressed)
 
 void ARangeWeapon::Recoil()
 {
-	TargetRelativeLocation = RootComponent->GetRelativeLocation().GetClampedToSize(0, 40);
-	TargetRelativeRotation = ClampRotator(RootComponent->GetRelativeRotation(), -10, 10, -10, 10, -10, 10);
+	TargetRelativeLocation = WeaponController->GetWeaponHolder()->GetRelativeLocation();
+	TargetRelativeRotation = WeaponController->GetWeaponHolder()->GetRelativeRotation();
 	PushbackRecoilTimelineComponent->PlayFromStart();
 	RotationRecoilTimelineComponent->PlayFromStart();
 	if (WeaponController && WeaponController->GetFollowCamera())
