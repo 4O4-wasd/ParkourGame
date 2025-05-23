@@ -32,7 +32,6 @@ public:
 
 	void EnableSettingsForThrowing() const;
 
-
 	static FRotator VectorToRotator(const FVector& Direction)
 	{
 		// Normalize the direction vector to ensure it's a unit vector

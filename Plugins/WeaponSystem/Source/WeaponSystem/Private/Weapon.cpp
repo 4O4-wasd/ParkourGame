@@ -3,6 +3,7 @@
 
 #include "Weapon.h"
 
+#include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 
 
@@ -52,8 +53,8 @@ void AWeapon::AttackButtonReleased_Implementation()
 
 void AWeapon::EnableSettingsForEquipping() const
 {
-	Mesh->SetSimulatePhysics(false);
-	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionComponent->SetSimulatePhysics(false);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ItemUpSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
@@ -61,8 +62,8 @@ void AWeapon::EnableSettingsForEquipping() const
 
 void AWeapon::EnableSettingsForThrowing() const
 {
-	Mesh->SetSimulatePhysics(true);
-	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionComponent->SetSimulatePhysics(true);
 
 	ItemUpSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Mesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::None);

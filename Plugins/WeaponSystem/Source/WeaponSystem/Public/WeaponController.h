@@ -64,7 +64,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual void DropCurrentItem();
-
+	
+	virtual void ClearItem();
 
 #pragma endregion Functions
 

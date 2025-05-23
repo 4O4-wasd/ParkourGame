@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "Item.generated.h"
 
+class UBoxComponent;
+
 UCLASS()
 class WEAPONSYSTEM_API AItem : public AActor
 {
@@ -27,6 +29,9 @@ protected:
 	virtual void Interact_Implementation(UWeaponController* Controller);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pickup)
+	UBoxComponent* CollisionComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pickup)
 	USkeletalMeshComponent* Mesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Pickup)
@@ -37,5 +42,9 @@ protected:
 
 public:
 	FORCEINLINE auto GetItemMesh() const { return Mesh; }
+	FORCEINLINE auto GetCollisionComponent() const { return CollisionComponent; }
 	FORCEINLINE auto GetWeaponController() const { return WeaponController; }
+	
+	UFUNCTION(BlueprintCallable)
+	void ClearItem();
 };

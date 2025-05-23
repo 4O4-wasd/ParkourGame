@@ -2,6 +2,7 @@
 
 #include "RangeWeapon.h"
 
+#include "HealthComponent.h"
 #include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -308,6 +309,13 @@ void ARangeWeapon::Fire()
 		FHitResult FireHitResult;
 		const bool bDidHit =
 			GetWorld()->LineTraceSingleByChannel(FireHitResult, MuzzleSocketLocation, End, ECC_Pawn, CollisionParams);
+		if (FireHitResult.GetActor())
+		{
+			if (const auto HealthComponent = FireHitResult.GetActor()->FindComponentByClass<UHealthComponent>())
+			{
+				HealthComponent->Damage(Damage);
+			}
+		}
 		if (BulletTraceSystem)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), BulletTraceSystem,

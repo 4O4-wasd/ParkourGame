@@ -6,6 +6,7 @@
 #include "RangeWeapon.h"
 #include "Weapon.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -80,8 +81,8 @@ void UWeaponController::DropAnItem(AWeapon*& WeaponToDrop, const bool IsASecondW
 		WeaponToDrop->DetachFromActor(FDetachmentTransformRules(
 			EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, true));
 		WeaponToDrop->EnableSettingsForThrowing();
-		WeaponToDrop->SetActorLocation(WeaponToDrop->GetActorLocation() + CharacterOwner->GetActorForwardVector() * 100,
-		                               false, nullptr, ETeleportType::TeleportPhysics);
+		WeaponToDrop->GetCollisionComponent()->AddForce(
+			(FollowCamera->GetForwardVector() * 100) * 15000);
 		WeaponToDrop->OnWeaponUnEquip();
 		WeaponToDrop->SetPlayerCamera(nullptr);
 		WeaponToDrop->ResetWeaponController();
@@ -108,6 +109,14 @@ void UWeaponController::DropCurrentItem()
 	}
 }
 
+void UWeaponController::ClearItem()
+{
+	CurrentItem->OnWeaponUnEquip();
+	CurrentItem->SetPlayerCamera(nullptr);
+	CurrentItem->ResetWeaponController();
+	CurrentItem = nullptr;
+}
+
 void UWeaponController::InteractWithPickup_Implementation(AItem* Pickup)
 {
 	if (const auto Weapon = Cast<AWeapon>(Pickup))
@@ -119,7 +128,7 @@ void UWeaponController::InteractWithPickup_Implementation(AItem* Pickup)
 
 		Items.Insert(Weapon, CurrentItemIndex);
 		CurrentItem = Weapon;
-		// SetArrayElement<AWeaponActor*>(GunWeapon, Weapons, CurrentWeaponIndex);
+		// SetArrayElem xent<AWeaponActor*>(GunWeapon, Weapons, CurrentWeaponIndex);
 		Weapon->EnableSettingsForEquipping();
 		Weapon->AttachToComponent(WeaponHolder, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true));
 		// SetWeaponVisibility();
@@ -207,15 +216,18 @@ void UWeaponController::SetCurrentWeaponIndex(const int WeaponIndex)
 
 void UWeaponController::AttackPressed()
 {
+	PRINT_TO_SCREEN(FString::Printf(TEXT("Fire Function")), 0.0f, FColor::Emerald);
+
 	if (!CurrentItem)
 	{
 		return;
 	}
 
-	if (GetWorld()->GetTimerManager().IsTimerActive(WeaponEquipTimerHandle))
-	{
-		return;
-	}
+	// if (GetWorld()->GetTimerManager().IsTimerActive(WeaponEquipTimerHandle))
+	// {
+	// 	return;
+	// }
+
 
 	if (const auto Item = Cast<AWeapon>(CurrentItem))
 	{
