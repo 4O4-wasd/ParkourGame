@@ -28,6 +28,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void AttackButtonReleased();
 
+	UFUNCTION(BlueprintCallable)
+	void EnableSettingsForShowing() const;
+
 	void EnableSettingsForEquipping() const;
 
 	void EnableSettingsForThrowing() const;

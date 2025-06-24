@@ -3,6 +3,7 @@
 
 #include "SwingWeapon.h"
 
+#include "MovieSceneTracksComponentTypes.h"
 #include "WeaponController.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
@@ -19,6 +20,8 @@ GEngine->AddOnScreenDebugMessage(-1, Time, Color, Message); \
 ASwingWeapon::ASwingWeapon()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	WebMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WebMesh"));
+	WebMesh->SetupAttachment(Mesh, "Muzzle");
 }
 
 void ASwingWeapon::BeginPlay()
@@ -37,23 +40,21 @@ void ASwingWeapon::Tick(const float DeltaSeconds)
 			ApplySwingPhysics(DeltaSeconds);
 
 			DebugLineEnd = UKismetMathLibrary::VInterpTo(DebugLineEnd,
+			                                             Mesh->GetSocketLocation(FName(*FireMuzzleSocketName)) -
 			                                             WebAttachPoint, DeltaSeconds, 6);
-
-			DrawDebugLine(
-				GetWorld(),
-				Mesh->GetSocketLocation(FName(*FireMuzzleSocketName)),
-				DebugLineEnd,
-				FColor::Black,
-				false,
-				.0f,
-				0,
-				3.0f
-			);
 		}
 		else
 		{
-			DebugLineEnd = Mesh->GetSocketLocation(FName(*FireMuzzleSocketName));
+			DebugLineEnd = UKismetMathLibrary::VInterpTo(DebugLineEnd,
+			                                             FVector::ZeroVector, DeltaSeconds, 40);
 		}
+		WebMesh->SetRelativeScale3D(
+			FVector(
+				(DebugLineEnd / 100).Size(),
+				WebMesh->GetRelativeScale3D().Y,
+				WebMesh->GetRelativeScale3D().Z
+			)
+		);
 		PreviousLocation = WeaponController->CharacterOwner->GetActorLocation();
 		RotateTowardsAttachPoint();
 	}
@@ -97,8 +98,7 @@ bool ASwingWeapon::ShootWeb()
 		return false;
 	}
 
-	FVector HitLocation;
-	if (GetWebTargetPoint(HitLocation))
+	if (FVector HitLocation; GetWebTargetPoint(HitLocation))
 	{
 		WebAttachPoint = HitLocation;
 		CurrentWebLength = FVector::Distance(WeaponController->CharacterOwner->GetActorLocation(), WebAttachPoint);
@@ -167,7 +167,7 @@ bool ASwingWeapon::GetWebTargetPoint(FVector& OutHitLocation) const
 	const FVector BoxExtent(100.0f, 100.0f, 100.0f);
 	// Perform line trace
 	FHitResult HitResult;
-	bool bHit = GetWorld()->SweepSingleByChannel(
+	const bool bHit = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		CameraLocation,
 		LineEnd,
@@ -175,6 +175,11 @@ bool ASwingWeapon::GetWebTargetPoint(FVector& OutHitLocation) const
 		ECC_Visibility,
 		FCollisionShape::MakeBox(BoxExtent)
 	);
+
+	if (!(HitResult.GetActor() && HitResult.GetActor()->ActorHasTag("Swingable")))
+	{
+		return false;
+	}
 
 	// DrawDebugBox(GetWorld(), (LineStart + LineEnd) / 2, BoxExtent, FColor::Red, false, 10.0f);
 
@@ -238,11 +243,10 @@ void ASwingWeapon::RotateTowardsAttachPoint() const
 	}
 	// SetActorRotation(FRotator(NewRotation.Yaw, NewRotation.Pitch, NewRotation.Roll));
 	const auto a = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), WebAttachPoint);
-	const auto b = UKismetMathLibrary::RInterpTo(Mesh->GetRelativeRotation(), FRotator(
-		                                             0, a.Yaw - WeaponController->GetFollowCamera()->
-		                                             GetComponentRotation().Yaw,
-		                                             -a.Pitch), GetWorld()->GetDeltaSeconds(), WeaponRotationTime);
-	Mesh->SetRelativeRotation(b);
+	const auto rot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), WebAttachPoint);
+	Mesh->SetWorldRotation(FRotator(
+		a.Roll, (a.Yaw - 90),
+		-a.Pitch));
 }
 
 void ASwingWeapon::ApplySwingPhysics(const float DeltaTime)

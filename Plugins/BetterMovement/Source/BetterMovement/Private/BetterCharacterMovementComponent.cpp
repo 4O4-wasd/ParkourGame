@@ -8,6 +8,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Math/MathFwd.h"
+#include "ParkourGame/ParkourCharacter.h"
 
 #define PRINT_TO_SCREEN(Message, Time, Color) \
 if (GEngine) \
@@ -518,7 +519,7 @@ void UBetterCharacterMovementComponent::DashPressed()
 
 void UBetterCharacterMovementComponent::Dash()
 {
-	if (!bCanDash)
+	if (!bCanDash || (Velocity.Size2D() <= 0))
 	{
 		ResolveMovement();
 		return;

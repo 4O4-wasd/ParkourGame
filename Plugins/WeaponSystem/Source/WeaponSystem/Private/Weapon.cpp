@@ -51,6 +51,14 @@ void AWeapon::AttackButtonReleased_Implementation()
 {
 }
 
+void AWeapon::EnableSettingsForShowing() const
+{
+	CollisionComponent->SetSimulatePhysics(false);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	ItemUpSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 void AWeapon::EnableSettingsForEquipping() const
 {
 	CollisionComponent->SetSimulatePhysics(false);

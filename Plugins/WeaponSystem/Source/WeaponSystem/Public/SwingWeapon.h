@@ -22,6 +22,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Swing Weapon: Settings")
 	float WeaponRotationTime = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Swing Weapon: Web Settings")
+	UStaticMeshComponent* WebMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Swing Weapon: Web Settings")
 	float MaxWebLength = 1500.0f;

@@ -301,4 +301,9 @@ protected:
 	FVector EndingDashLocation;
 
 #pragma endregion State Variables
+
+public:
+#pragma region Getters
+	FORCEINLINE auto GetMovementSetting() const { return MovementSetting; }
+#pragma endregion Getters
 };

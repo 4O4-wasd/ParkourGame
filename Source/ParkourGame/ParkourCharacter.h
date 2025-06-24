@@ -131,7 +131,11 @@ protected:
 
 	void Look(const FInputActionValue& Value);
 
+	void DynamicFieldOfView();
+
 	void WeaponsSway();
+
+	void DashCustom();
 
 public:
 	// Called every frame
@@ -167,6 +171,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	class UWeaponController* WeaponController;
+
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
+	float FieldOfView = 120;
 
 public:
 	FORCEINLINE void ChangeCameraLag(const bool bIsEnabled) const { CameraBoom->bEnableCameraLag = bIsEnabled; }

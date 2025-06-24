@@ -108,6 +108,7 @@ void AParkourCharacter::Tick(const float DeltaTime)
 	}
 
 	WeaponsSway();
+	DynamicFieldOfView();
 
 	// CurrentWeapon = Weapons[CurrentWeaponIndex];
 	// SetWeaponVisibilty();
@@ -126,8 +127,7 @@ void AParkourCharacter::JumpVault()
 		BetterCharacterMovement->WallJump();
 		return;
 	}
-	FVector _;
-	if (!BetterCharacterMovement->CanVault(_))
+	if (FVector _; !BetterCharacterMovement->CanVault(_))
 	{
 		Jump();
 		return;
@@ -186,6 +186,17 @@ void AParkourCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void AParkourCharacter::DynamicFieldOfView()
+{
+	const float FOVInRespectToVel = BetterCharacterMovement->Velocity.Size() > 1400
+		                                ? FieldOfView + (BetterCharacterMovement->Velocity.Size() / 200)
+		                                : FieldOfView;
+
+	const float InterpolatedFov = UKismetMathLibrary::FInterpTo(FollowCamera->FieldOfView, FOVInRespectToVel,
+	                                                            GetWorld()->GetDeltaSeconds(), 3);
+	FollowCamera->SetFieldOfView(InterpolatedFov);
+}
+
 void AParkourCharacter::WeaponsSway()
 {
 	constexpr auto InitRotation = FRotator();
@@ -215,6 +226,20 @@ void AParkourCharacter::WeaponsSway()
 	);
 }
 
+void AParkourCharacter::DashCustom()
+{
+	BetterCharacterMovement->DashPressed();
+	if (BetterCharacterMovement->GetCurrentCustomMovementMode() == Dashing)
+	{
+		FieldOfView += 40;
+		FTimerHandle _;
+		GetWorld()->GetTimerManager().SetTimer(_, [&]()
+		{
+			FieldOfView -= 40;
+		}, BetterCharacterMovement->GetMovementSetting().Dash.Time, false);
+	}
+}
+
 // Called to bind functionality to input
 void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -222,7 +247,7 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AParkourCharacter::JumpVault);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Ongoing, this, &AParkourCharacter::JumpVault);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -263,8 +288,8 @@ void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(
 			DashAction,
 			ETriggerEvent::Started,
-			BetterCharacterMovement,
-			&UBetterCharacterMovementComponent::DashPressed
+			this,
+			&AParkourCharacter::DashCustom
 		);
 
 		EnhancedInputComponent->BindAction(
