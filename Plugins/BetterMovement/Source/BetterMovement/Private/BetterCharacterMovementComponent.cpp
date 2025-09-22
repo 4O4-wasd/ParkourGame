@@ -665,7 +665,7 @@ bool UBetterCharacterMovementComponent::CheckCapsuleCollision(const FVector& Cen
 
 void UBetterCharacterMovementComponent::Vault()
 {
-	if (!CanVault(EndingVaultLocation))
+	if (!CanVault(EndingVaultLocation))x
 	{
 		return;
 	}
