@@ -1,6 +1,4 @@
-﻿// 
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -14,7 +12,6 @@ class WEAPONSYSTEM_API AItem : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	AItem();
 
 	virtual void Tick(float DeltaTime) override;
@@ -23,7 +20,6 @@ public:
 	void Interact(class UWeaponController* Controller);
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	virtual void Interact_Implementation(UWeaponController* Controller);

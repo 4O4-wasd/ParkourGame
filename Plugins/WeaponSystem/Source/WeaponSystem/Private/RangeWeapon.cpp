@@ -1,5 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿
 #include "RangeWeapon.h"
 
 #include "HealthComponent.h"
@@ -143,18 +142,6 @@ void ARangeWeapon::Tick(const float DeltaSeconds)
 				GetWorld()->GetDeltaSeconds(),
 				RecoilSnappiness
 			);
-
-			// BaseRelativeLocation = FMath::VInterpTo(
-			// 	BaseRelativeLocation,
-			// 	WeaponDefaultRelativeLocation, GetWorld()->GetDeltaSeconds(),
-			// 	10
-			// );
-			//
-			// BaseRelativeRotation = FMath::RInterpTo(
-			// 	BaseRelativeRotation,
-			// 	VectorToRotator(WeaponDefaultRelativeRotation), GetWorld()->GetDeltaSeconds(),
-			// 	10
-			// );
 		}
 	}
 }
@@ -350,9 +337,6 @@ void ARangeWeapon::Fire()
 			GetComponentLocation(), ECC_Visibility,
 			CollisionParams
 		);
-		// DrawDebugLine(GetWorld(), Mesh->GetComponentLocation(),
-		//               (Mesh->GetUpVector() * -1 * 1000) + Mesh->GetComponentLocation(), FColor::Magenta,
-		//               false, 5);
 
 		if (bDidHit)
 		{

@@ -1,6 +1,4 @@
-﻿// 
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Weapon.h"
@@ -165,7 +163,6 @@ protected:
 	virtual void AttackButtonReleased_Implementation() override;
 
 public:
-	// Sets default values for this character's properties
 	ARangeWeapon();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
@@ -190,16 +187,13 @@ public:
 	{
 		if (!Curve)
 		{
-			// Fallback to basic interpolation
 			return FMath::FInterpTo(Current, Target, DeltaTime, 5.0f);
 		}
 		const auto a = UCurveFloat();
 
 
-		// Update elapsed time
 		ElapsedTime += DeltaTime;
 
-		// Get curve duration
 		float CurveDuration = 0.f;
 		const TArray<FRichCurveKey>& Keys = Curve->FloatCurve.GetConstRefOfKeys();
 		if (Keys.Num() > 0)
@@ -207,13 +201,10 @@ public:
 			CurveDuration = Keys.Last().Time;
 		}
 
-		// Clamp elapsed time to curve duration
 		const float ClampedTime = FMath::Clamp(ElapsedTime, 0.f, CurveDuration);
 
-		// Get curve alpha (0–1 range)
 		const float Alpha = Curve->GetFloatValue(ClampedTime);
 
-		// Lerp using curve-shaped alpha
 		return FMath::Lerp(Current, Target, Alpha);
 	}
 

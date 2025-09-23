@@ -1,6 +1,4 @@
-﻿// 
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Weapon.h"
@@ -12,7 +10,6 @@ class WEAPONSYSTEM_API ASwingWeapon : public AWeapon
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	ASwingWeapon();
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -57,7 +54,6 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	// Input functions
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Turn(float Value);
@@ -82,13 +78,10 @@ protected:
 	float SwingAngle;
 	FVector SwingPlaneNormal;
 
-	// Apply swing physics
 	void ApplySwingPhysics(float DeltaTime);
 
-	// Helper function to get target point for web shooting
 	bool GetWebTargetPoint(FVector& OutHitLocation) const;
 
-	// Calculate swing direction
 	void UpdateSwingPlane();
 
 	void RotateTowardsAttachPoint() const;

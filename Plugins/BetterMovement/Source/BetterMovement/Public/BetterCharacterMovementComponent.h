@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -182,7 +180,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsCustomMovementModeEnabled(ECustomMovementMode TheMovementMode) const;
 
-	// Getters / Setters
 	FORCEINLINE void SetMovementInput(FVector2D NewInput) { MovementInput = NewInput; }
 	FORCEINLINE auto GetCurrentCustomMovementMode() const { return CurrentCustomMovementMode; }
 

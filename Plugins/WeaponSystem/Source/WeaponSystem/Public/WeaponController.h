@@ -1,6 +1,4 @@
-﻿// 
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -29,7 +27,6 @@ protected:
 	virtual void SetWeaponVisibility();
 
 public:
-	// Sets default values for this component's properties
 	UWeaponController();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)

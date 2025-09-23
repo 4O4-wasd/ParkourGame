@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "ParkourCharacter.h"
 
 #include "BetterCharacterMovementComponent.h"
@@ -16,7 +14,6 @@
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
-// Sets default values
 AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer):
 	Super(ObjectInitializer.SetDefaultSubobjectClass<UBetterCharacterMovementComponent>(
 		ACharacter::CharacterMovementComponentName))
@@ -30,7 +27,7 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 0.0f, 500.0f);
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -83,7 +80,6 @@ AParkourCharacter::AParkourCharacter(const FObjectInitializer& ObjectInitializer
 	WeaponController->InitializeValues(FollowCamera, WeaponHolder, SecondWeaponHolder);
 }
 
-// Called when the game starts or when spawned
 void AParkourCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -109,15 +105,6 @@ void AParkourCharacter::Tick(const float DeltaTime)
 
 	WeaponsSway();
 	DynamicFieldOfView();
-
-	// CurrentWeapon = Weapons[CurrentWeaponIndex];
-	// SetWeaponVisibilty();
-	//
-	// if (!CurrentWeapon)
-	// {
-	//     FollowCamera->SetRelativeRotation(FMath::RInterpTo(FollowCamera->GetRelativeRotation(), TargetCameraRotation,
-	//         GetWorld()->GetDeltaSeconds(), 8.f));
-	// }
 }
 
 void AParkourCharacter::JumpVault()
@@ -138,7 +125,6 @@ void AParkourCharacter::JumpVault()
 
 void AParkourCharacter::Move(const FInputActionValue& Value)
 {
-	// input is a Vector2D
 	const auto MovementVector = Value.Get<FVector2D>();
 
 	if (bLockMovement)
@@ -148,17 +134,13 @@ void AParkourCharacter::Move(const FInputActionValue& Value)
 
 	if (Controller != nullptr)
 	{
-		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		// get forward vector
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 		BetterCharacterMovement->SetMovementInput(MovementVector);
@@ -174,12 +156,10 @@ void AParkourCharacter::StopMove()
 
 void AParkourCharacter::Look(const FInputActionValue& Value)
 {
-	// input is a Vector2D
 	const auto LookAxisVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
-		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 		LookVector = LookAxisVector;
@@ -240,10 +220,8 @@ void AParkourCharacter::DashCustom()
 	}
 }
 
-// Called to bind functionality to input
 void AParkourCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// Jumping

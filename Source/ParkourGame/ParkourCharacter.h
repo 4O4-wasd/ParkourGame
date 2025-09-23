@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -117,11 +115,9 @@ class PARKOURGAME_API AParkourCharacter : public ACharacter
 	FRotator TargetCameraRotation;
 
 public:
-	// Sets default values for this character's properties
 	AParkourCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void JumpVault();
@@ -138,10 +134,8 @@ protected:
 	void DashCustom();
 
 public:
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
@@ -154,14 +148,14 @@ private:
 	FVector2D MoveVector;
 	FVector2D LookVector;
 
-	FVector InitialWeaponPosition; // Initial position of the weapon mesh
-	FRotator InitialWeaponRotation; // Initial rotation of the weapon mesh
+	FVector InitialWeaponPosition;
+	FRotator InitialWeaponRotation;
 
-	FVector WeaponOffset; // Current weapon offset
-	FVector LastVelocity; // Last velocity of the character
+	FVector WeaponOffset;
+	FVector LastVelocity;
 
-	float BobbingSpeed = 5.f; // Speed of the bobbing
-	float BobbingAmount = 10.f; // Amount of bobbing
+	float BobbingSpeed = 5.f;
+	float BobbingAmount = 10.f;
 
 protected:
 	FTimerHandle FireTimerHandle;

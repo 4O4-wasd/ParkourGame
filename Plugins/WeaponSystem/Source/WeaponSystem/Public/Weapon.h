@@ -1,6 +1,4 @@
-﻿// 
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Item.h"
@@ -12,7 +10,6 @@ class WEAPONSYSTEM_API AWeapon : public AItem
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	AWeapon();
 	virtual void Tick(float DeltaTime) override;
 
@@ -37,17 +34,14 @@ public:
 
 	static FRotator VectorToRotator(const FVector& Direction)
 	{
-		// Normalize the direction vector to ensure it's a unit vector
 		const FVector NormalizedDirection = Direction.GetSafeNormal();
 
-		// Convert the normalized direction vector to a rotator
 		const FRotator Rotator = NormalizedDirection.ToOrientationRotator();
 
 		return Rotator;
 	}
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	virtual void Interact_Implementation(UWeaponController* Controller) override;
@@ -61,7 +55,6 @@ protected:
 	virtual void AttackButtonReleased_Implementation();
 
 protected:
-	// Parameters
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Settings", meta = (AllowPrivateAccess = "true"))
 	FString WeaponName;
 

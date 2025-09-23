@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
+﻿
 #include "WeaponController.h"
 
 #include "RangeWeapon.h"
@@ -128,10 +126,8 @@ void UWeaponController::InteractWithPickup_Implementation(AItem* Pickup)
 
 		Items.Insert(Weapon, CurrentItemIndex);
 		CurrentItem = Weapon;
-		// SetArrayElem xent<AWeaponActor*>(GunWeapon, Weapons, CurrentWeaponIndex);
 		Weapon->EnableSettingsForEquipping();
 		Weapon->AttachToComponent(WeaponHolder, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true));
-		// SetWeaponVisibility();
 		if (FollowCamera)
 		{
 			Weapon->SetPlayerCamera(FollowCamera);
@@ -222,11 +218,6 @@ void UWeaponController::AttackPressed()
 	{
 		return;
 	}
-
-	// if (GetWorld()->GetTimerManager().IsTimerActive(WeaponEquipTimerHandle))
-	// {
-	// 	return;
-	// }
 
 
 	if (const auto Item = Cast<AWeapon>(CurrentItem))

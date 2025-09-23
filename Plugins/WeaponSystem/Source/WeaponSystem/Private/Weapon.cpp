@@ -1,20 +1,16 @@
-﻿// 
-
-
+﻿
 #include "Weapon.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 
 
-// Sets default values
 AWeapon::AWeapon():
 	WeaponIcon(nullptr),
 	WeaponDefaultRelativeLocation(0, 0, 0),
 	WeaponDefaultRelativeRotation(0, 0, 0),
 	PlayerCamera(nullptr)
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorRelativeLocation(WeaponDefaultRelativeLocation);
 	SetActorRelativeRotation(VectorToRotator(WeaponDefaultRelativeRotation));

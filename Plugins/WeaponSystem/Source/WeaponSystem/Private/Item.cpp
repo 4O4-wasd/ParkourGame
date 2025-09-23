@@ -1,17 +1,12 @@
-﻿// 
-
-
-#include "Item.h"
+﻿#include "Item.h"
 
 #include "WeaponController.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 
 
-// Sets default values
 AItem::AItem()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision Component"));
@@ -32,7 +27,6 @@ AItem::AItem()
 	ItemUpSphere->InitSphereRadius(150);
 }
 
-// Called when the game starts or when spawned
 void AItem::BeginPlay()
 {
 	Super::BeginPlay();
@@ -52,7 +46,6 @@ void AItem::ClearItem()
 	WeaponController->ClearItem();
 }
 
-// Called every frame
 void AItem::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
