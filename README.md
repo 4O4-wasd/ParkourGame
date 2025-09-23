@@ -5,7 +5,7 @@
 An FPS parkour game prototype that is made in Unreal Engine 5.
 This project was initially created as a way for me to learn Unreal Engine and C++ but I guess it evolved into a derpy and fun game (in my opinion).
 
-[![Play on Itch.io](https://img.shields.io/badge/Itch.io-Play%20J.A.P.G%20Now-FA5C5C?logo=itch.io&logoColor=white)](https://4o4-wasd.itch.io/parkour-game)
+[![Play on Itch.io](https://img.shields.io/badge/Itch.io-Play%20J.A.P.G%20Now-FA5C5C?logo=itch.io&logoColor=white&style=for-the-badge)](https://4o4-wasd.itch.io/parkour-game)
 
 ---
 
