@@ -35,7 +35,7 @@ This project was initially created as a way for me to learn Unreal Engine and C+
 
 ### AI
 
--   J.A.A.I.E – a simple but overpowered AI that shoots at the player
+-   J.A.A.I.E – a simple but overpowered AI that shoots at the player (though not in the game cause it being impossible to beat)
 -   Boom Boy AI – runs at you and explodes if it gets close
 
 ### UI
